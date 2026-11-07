@@ -41,7 +41,7 @@ export const ENV = {
   APP_ENV: rawEnv.APP_ENV || 'development',
 
   BACKEND_HOST: rawEnv.BACKEND_HOST || '0.0.0.0',
-  BACKEND_PORT: Number(rawEnv.BACKEND_PORT || 4000),
+  BACKEND_PORT: Number(rawEnv.BACKEND_PORT || 8000),
   DB_CLIENT: (rawEnv.DB_CLIENT || 'sqlite') as 'sqlite' | 'postgres',
   SQLITE_DB_PATH: rawEnv.SQLITE_DB_PATH || './backend/data/astrotrade.sqlite',
   POSTGRES_URL: rawEnv.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/astrotrade',

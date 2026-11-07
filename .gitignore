@@ -13,6 +13,8 @@ backend/data/*.sqlite
 backend/data/*.sqlite-shm
 backend/data/*.sqlite-wal
 .omx/
+.man/
+.run/
 
 # OS & Editor files
 .DS_Store

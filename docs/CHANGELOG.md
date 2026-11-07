@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## [1.0.2] - 2026-11-07
+
+### 변경 내용
+- **기본 포트 및 환경변수 표준화 (`frontend:3000`, `backend:8000`)**:
+  - 루트 `.env` 및 `.env.example`을 `[공통/Docker]`, `[Backend]`, `[Frontend]` 섹션으로 정리하고 기본 포트를 `FRONTEND_PORT=3000`, `BACKEND_PORT=8000`으로 설정.
+  - `docs/ENV_GUIDE.md` 환경변수 설정 문서 추가.
+- **`man.sh` 통합 프로세스 관리 스크립트 추가**:
+  - `./man.sh [start|stop|status|restart] [backend|frontend|none]` 인터페이스 구현.
+  - 대상 생략 또는 `none` 지정 시 `backend`(`8000`)와 `frontend`(`3000`)를 모두 제어하며, Windows Git Bash 및 Unix 환경을 모두 지원.
+- **Dockerize (`backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`)**:
+  - `backend/Dockerfile`: Bun 기반 멀티스테이지 이미지 빌드 및 `8000` 포트 노출.
+  - `frontend/Dockerfile`: Bun 프로덕션 빌드 후 Nginx SPA 설정으로 `3000` 포트 서빙.
+  - `docker-compose.yml`: 루트 `.env` 로드, 별도 중복 PostgreSQL 컨테이너 없이 `host.docker.internal` 매핑으로 호스트 공용 DB 연동 및 SQLite 볼륨 영속화 지원.
+
+### 검증 결과
+- `docker compose config`: Compose 매니페스트 문법 및 환경변수 치환 정상 확인.
+- `./man.sh start`, `./man.sh status`, `http://localhost:8000/api/health` 및 `http://localhost:3000` 응답 확인 후 `./man.sh stop` 정상 종료 확인.
+- `bun run build:frontend`: 프로덕션 빌드 성공 확인.
+
+---
+
 ## [1.0.1] - 2026-11-07
 
 ### 변경 내용

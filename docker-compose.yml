@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      BACKEND_HOST: "0.0.0.0"
+      BACKEND_PORT: "8000"
+      SQLITE_DB_PATH: "./backend/data/astrotrade.sqlite"
+      POSTGRES_URL: ${DOCKER_POSTGRES_URL:-${POSTGRES_URL:-postgresql://postgres:postgres@host.docker.internal:5432/astrotrade}}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend/data:/app/backend/data
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api}
+        VITE_SUPERUSER_EMAIL: ${VITE_SUPERUSER_EMAIL:-oldtv.cf@gmail.com}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"

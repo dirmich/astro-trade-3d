@@ -14,10 +14,10 @@ export default defineConfig(({ mode }) => {
     plugins: [svelte()],
     envDir: rootDir,
     server: {
-      port: Number(env.FRONTEND_PORT || 5173),
+      port: Number(env.FRONTEND_PORT || 3000),
       proxy: {
         '/api': {
-          target: `http://localhost:${env.BACKEND_PORT || 4000}`,
+          target: `http://localhost:${env.BACKEND_PORT || 8000}`,
           changeOrigin: true,
         },
       },

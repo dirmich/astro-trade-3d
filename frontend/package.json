@@ -1,10 +1,10 @@
 {
   "name": "astro-trade-3d-frontend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173",
+    "dev": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview"
   },

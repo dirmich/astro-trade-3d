@@ -1,6 +1,6 @@
 # TASK: AstroTrade 3D 세부 개발 체크리스트 및 버전 기록
 
-- **문서 버전**: v1.0.1 (직접운행, 구역지도 상점, 멀티유저 해적전리품, 다국어, BGM 확장 완료)
+- **문서 버전**: v1.0.2 (`man.sh` 프로세스 관리 스크립트 및 Dockerize 구성 완료)
 - **관리 원칙**: 각 Subtask 완료 시마다 버전을 업데이트하고 Git 커밋을 수행합니다.
 
 ---
@@ -42,3 +42,9 @@
 - [x] 다단계 우주해적(`Lv.1`~`Lv.10`), 다중 유저 협동 공격(Co-op), 상점 비매품 해적 전용 전리품(`pirate_only: true`, 5종) 드랍 시스템
 - [x] 친구 요청/수락 및 접속 상태 표시(`FriendsModal`), 레벨별 퀘스트 및 관리자 퀘스트 에디터(`QuestModal`, `AdminModal`)
 - [x] 4개 국어 모듈화(`en` 기본, `ko`, `ja`, `zh`) + DB 설정 저장, Web Audio API 기반 우주 배경음악 4곡 랜덤 재생 및 전투 전용 BGM/효과음(`SoundEngine`)
+
+### Phase 6: `man.sh` 실행 스크립트 및 Dockerize 표준화 (`v1.0.2`) — 완료
+- [x] 전역 운영 규칙에 맞춘 기본 포트 표준화 (`frontend:3000`, `backend:8000`)
+- [x] 루트 `man.sh` (`./man.sh [start|stop|status|restart] [backend|frontend|none]`) 작성 및 검증
+- [x] `backend/Dockerfile`, `frontend/Dockerfile`, 루트 `docker-compose.yml`, `.dockerignore` 작성 (`host.docker.internal` 공용 DB 연동 지원)
+- [x] `docs/ENV_GUIDE.md` 환경변수 소유권 및 설정 가이드 작성
