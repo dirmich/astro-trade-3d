@@ -244,4 +244,23 @@ export const en = {
   adminSimUsersBtn: 'Simulate New Pilots & Auto-Expand Planets',
   adminCreatePlanetTitle: 'Create Custom Planet',
   adminCreatePlanetBtn: 'Add New Planet Immediately',
+
+  // Right-Side Launch Menu & Live Space Map Radar
+  launchMenuTitle: '🚀 LAUNCH & AUTOPILOT CONTROL',
+  launchBigBtn: '🚀 LAUNCH (Manual / AI Flight)',
+  selectDestLabel: '🎯 Destination Planet',
+  distLabel: 'Distance',
+  estTravelTimeLabel: 'Est. Flight Time',
+  secUnit: 's',
+  startAiFlightBtn: '🤖 AI Autopilot Launch',
+  startManualFlightBtn: '🛸 Manual Launch (Steer)',
+  inFlightStatus: '🛰️ IN FLIGHT',
+  etaRemainingLabel: 'ETA Remaining',
+  spaceMapHudTitle: '🗺️ SPACE NAVIGATION MAP',
+  mapTargetLabel: '🎯 Target',
+  mapShipLabel: '🛸 Ship',
+  mapSteerHint: 'Steer with W/A/S/D toward 🎯 on the Space Map!',
+  mapNotOwnedTitle: '🔒 Space Map Required',
+  mapNotOwnedDesc: 'Purchase a Sector Space Map to unlock the live 2D radar and destination markers.',
+  buyMapNowBtn: '🛒 Buy Space Map',
 };

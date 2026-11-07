@@ -62,6 +62,51 @@
     : 8000;
   $: emergencyRemainingHud = Math.max(0, 3 - Number(state.user?.emergencyMapUsed || 0));
 
+  $: hasAnyUnlockedMap =
+    hudSectorMapStatus.active ||
+    Object.values(state.user?.unlockedMaps || {}).some((exp) => Number(exp) > nowMs) ||
+    Object.entries(state.user?.inventory || {}).some(
+      ([id, cnt]) => id.startsWith('map_') && Number(cnt) > 0
+    );
+
+  $: targetDistanceKm = targetPlanet
+    ? Math.round(
+        Math.sqrt(
+          Math.pow(targetPlanet.x - (state.flightTelemetry?.x || 0), 2) +
+            Math.pow(targetPlanet.y - (state.flightTelemetry?.y || 0), 2) +
+            Math.pow(targetPlanet.z - (state.flightTelemetry?.z || 0), 2)
+        )
+      )
+    : 0;
+
+  $: estManualSec = Math.max(
+    2,
+    Math.ceil(targetDistanceKm / (34 * Number(state.user?.flightSpeedBonus || 1)))
+  );
+  $: estAiSec = Math.max(
+    2,
+    Math.ceil(targetDistanceKm / (42 * Number(state.user?.flightSpeedBonus || 1)))
+  );
+
+  function toRadarCoord(val: number): number {
+    return Math.max(10, Math.min(190, 100 + (val / 1450) * 88));
+  }
+
+  function handleDestinationChange(planetId: string) {
+    gameStore.update((s) => ({ ...s, selectedTargetPlanetId: planetId }));
+    if (engine) engine.setTargetPlanet(planetId);
+  }
+
+  function handlePrimaryLaunch() {
+    const destId = targetPlanet?.id || state.planets[1]?.id || state.planets[0]?.id;
+    if (!destId) return;
+    if ((state.user?.ai_agent_uses || 0) > 0) {
+      startAiAutopilotFlight(destId);
+    } else {
+      startManualFlightTo(destId);
+    }
+  }
+
   $: if (engine && state.user?.flightSpeedBonus) {
     engine.setSpeedMultiplier(Number(state.user.flightSpeedBonus));
   }
@@ -674,11 +719,236 @@
     </div>
   </aside>
 
-  <!-- Right HUD: Equipped Items / Pirate Loot Showcase + Nearby Multiplayer Pilots & Logs -->
+  <!-- Right HUD: Prominent Launch (출항) Control + Live 2D Space Navigation Map Radar + Owned Items & Logs -->
   <aside
-    class="hidden lg:flex flex-col absolute top-14 right-3 z-10 w-80 bg-slate-900/85 backdrop-blur-md border border-cyan-500/35 rounded-2xl p-3 space-y-2.5 shadow-xl max-h-[calc(100vh-10.5rem)]"
+    class="flex flex-col absolute top-14 right-3 z-10 w-80 md:w-88 bg-slate-900/90 backdrop-blur-md border border-cyan-500/45 rounded-2xl p-3 space-y-2.5 shadow-2xl max-h-[calc(100vh-10.5rem)] overflow-y-auto"
   >
-    <div>
+    <!-- 1. Prominent Right-Side Launch (출항: 수동운행 / AI 자동운행) Control Panel -->
+    <div class="p-3 rounded-2xl bg-gradient-to-br from-slate-950 via-cyan-950/60 to-emerald-950/50 border-2 border-emerald-400/60 shadow-lg space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-extrabold text-emerald-300 tracking-wide">
+          {$t.launchMenuTitle}
+        </span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-950 text-sky-300 border border-sky-500/40">
+          🤖 AI: {state.user?.ai_agent_uses || 0}{$t.usesUnit}
+        </span>
+      </div>
+
+      <!-- Destination Planet Selector -->
+      <div class="space-y-1">
+        <label for="hud-dest-select" class="block text-[11px] font-bold text-cyan-200">
+          {$t.selectDestLabel}
+        </label>
+        <select
+          id="hud-dest-select"
+          value={targetPlanet?.id || ''}
+          on:change={(e) => handleDestinationChange(e.currentTarget.value)}
+          class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-cyan-500/50 text-xs font-bold text-white"
+        >
+          {#each state.planets as p (p.id)}
+            {@const dx = Math.round(p.x - (state.flightTelemetry?.x || 0))}
+            {@const dy = Math.round(p.y - (state.flightTelemetry?.y || 0))}
+            {@const dz = Math.round(p.z - (state.flightTelemetry?.z || 0))}
+            {@const dKm = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz))}
+            <option value={p.id}>
+              🎯 {localName(p, $currentLang)} ({p.sector}) — {dKm}km
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- Distance & Distance-Proportional Travel Time Display -->
+      {#if targetPlanet}
+        <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] font-mono">
+          <span class="text-cyan-300 font-bold">
+            📏 {$t.distLabel}: {targetDistanceKm} km
+          </span>
+          <span class="text-amber-300 font-bold">
+            ⏱️ {$t.estTravelTimeLabel}: ~{(state.user?.ai_agent_uses || 0) > 0 ? estAiSec : estManualSec}{$t.secUnit}
+          </span>
+        </div>
+      {/if}
+
+      <!-- Live Flight Status when Flying (Manual or AI Autopilot) -->
+      {#if state.flightMode !== 'ORBIT'}
+        <div class="p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-400/60 space-y-1.5">
+          <div class="flex items-center justify-between text-xs font-extrabold text-emerald-300">
+            <span class="animate-pulse">
+              {state.flightMode === 'AI_AUTOPILOT' ? $t.modeAiPilot : $t.modeManual}
+            </span>
+            <span class="font-mono text-amber-300">
+              ⏱️ {$t.etaRemainingLabel}: {state.flightTelemetry.etaSeconds || estManualSec}{$t.secUnit}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-200">
+            <span>{$t.spdLabel}: {state.flightTelemetry.speed} km/s</span>
+            <span>🎯 {targetPlanet ? localName(targetPlanet, $currentLang) : state.flightTelemetry.nearestPlanetName} ({state.flightTelemetry.targetDistance}km)</span>
+          </div>
+          <button
+            type="button"
+            on:click={() =>
+              handleManualDock(
+                state.flightTelemetry.canDock
+                  ? state.flightTelemetry.nearestPlanetId || currentPlanet?.id
+                  : currentPlanet?.id
+              )}
+            class="w-full py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow"
+          >
+            {state.flightTelemetry.canDock
+              ? `${$t.dockNowBtn} [${state.flightTelemetry.nearestPlanetName}]`
+              : $t.modeOrbit}
+          </button>
+        </div>
+      {/if}
+
+      <!-- Large Prominent Launch Action Buttons -->
+      <div class="grid grid-cols-1 gap-1.5">
+        {#if (state.user?.ai_agent_uses || 0) > 0}
+          <button
+            type="button"
+            on:click={() => startAiAutopilotFlight(targetPlanet?.id)}
+            class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg border border-white/30 transition transform active:scale-95"
+          >
+            {$t.startAiFlightBtn} ({state.user?.ai_agent_uses}{$t.usesUnit} · ~{estAiSec}{$t.secUnit})
+          </button>
+        {/if}
+
+        <button
+          type="button"
+          on:click={() => startManualFlightTo(targetPlanet?.id)}
+          class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg border border-emerald-300/40 transition transform active:scale-95"
+        >
+          {$t.startManualFlightBtn} (~{estManualSec}{$t.secUnit})
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Live 2D Visual Space Navigation Map Radar (Displayed when player owns a Space Map) -->
+    <div class="p-2.5 rounded-2xl bg-slate-950/95 border border-cyan-500/40 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-cyan-300">{$t.spaceMapHudTitle}</span>
+        <button
+          type="button"
+          on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
+          class="text-[10px] font-bold text-cyan-400 hover:underline"
+        >
+          {$t.btnStarMap}
+        </button>
+      </div>
+
+      {#if hasAnyUnlockedMap}
+        <div class="relative flex flex-col items-center">
+          <svg
+            viewBox="0 0 200 200"
+            class="w-full max-w-[220px] aspect-square rounded-xl bg-slate-950 border border-slate-800 shadow-inner"
+          >
+            <!-- Sector Radar Grid Circles -->
+            <circle cx="100" cy="100" r="30" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+            <circle cx="100" cy="100" r="88" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+            <line x1="100" y1="4" x2="100" y2="196" stroke="#0f172a" />
+            <line x1="4" y1="100" x2="196" y2="100" stroke="#0f172a" />
+
+            <!-- Central Sun -->
+            <circle cx="100" cy="100" r="4" fill="#fbbf24" />
+
+            <!-- Dashed Navigation Guide Line from Player Ship to Destination Planet -->
+            {#if targetPlanet}
+              {@const sx = toRadarCoord(state.flightTelemetry?.x || 0)}
+              {@const sy = toRadarCoord(state.flightTelemetry?.z || 0)}
+              {@const tx = toRadarCoord(targetPlanet.x)}
+              {@const ty = toRadarCoord(targetPlanet.z)}
+              <line
+                x1={sx}
+                y1={sy}
+                x2={tx}
+                y2={ty}
+                stroke="#22d3ee"
+                stroke-width="1.6"
+                stroke-dasharray="4 2"
+              />
+            {/if}
+
+            <!-- Planets on Space Map (Click to select destination) -->
+            {#each state.planets as mp (mp.id)}
+              {@const secActive =
+                getSectorMapStatus(state.user?.unlockedMaps, mp.sector, nowMs).active ||
+                Boolean(state.user?.inventory?.['map_all_galaxy'])}
+              {#if secActive || mp.id === currentPlanet?.id || mp.id === targetPlanet?.id}
+                {@const px = toRadarCoord(mp.x)}
+                {@const py = toRadarCoord(mp.z)}
+                {@const isDest = mp.id === targetPlanet?.id}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <g
+                  class="cursor-pointer"
+                  on:click={() => handleDestinationChange(mp.id)}
+                >
+                  {#if isDest}
+                    <circle
+                      cx={px}
+                      cy={py}
+                      r="8.5"
+                      fill="none"
+                      stroke="#f59e0b"
+                      stroke-width="1.4"
+                      stroke-dasharray="2 2"
+                    />
+                  {/if}
+                  <circle
+                    cx={px}
+                    cy={py}
+                    r={isDest ? 4.5 : 3.2}
+                    fill={mp.color_primary}
+                    stroke="#ffffff"
+                    stroke-width="0.7"
+                  />
+                  <text
+                    x={px + 5}
+                    y={py + 2.5}
+                    fill={isDest ? '#fde68a' : '#94a3b8'}
+                    font-size="6.8"
+                    font-weight="bold"
+                  >
+                    {isDest ? '🎯' : ''}{localName(mp, $currentLang)}
+                  </text>
+                </g>
+              {/if}
+            {/each}
+
+            <!-- Player Spaceship Marker & Heading Vector -->
+            {#if state.flightTelemetry}
+              {@const sx = toRadarCoord(state.flightTelemetry.x)}
+              {@const sy = toRadarCoord(state.flightTelemetry.z)}
+              <g transform="translate({sx}, {sy})">
+                <circle r="4" fill="#10b981" stroke="#ffffff" stroke-width="1.1" />
+                <text x="-10" y="-6" fill="#6ee7b7" font-size="6.8" font-weight="bold">
+                  {$t.mapShipLabel}
+                </text>
+              </g>
+            {/if}
+          </svg>
+          <div class="text-[10px] text-cyan-300 text-center mt-1 font-medium">
+            {$t.mapSteerHint}
+          </div>
+        </div>
+      {:else}
+        <div class="p-3 rounded-xl bg-rose-950/60 border border-dashed border-rose-500/50 text-center space-y-1.5">
+          <div class="text-xs font-bold text-rose-300">{$t.mapNotOwnedTitle}</div>
+          <p class="text-[10px] text-slate-300 leading-relaxed">{$t.mapNotOwnedDesc}</p>
+          <button
+            type="button"
+            on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
+            class="w-full py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[11px] font-bold"
+          >
+            {$t.buyMapNowBtn} ({(hudSectorMapSpec?.base_price || 800).toLocaleString()} CR)
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <!-- 3. Owned Items Quick Bar -->
+    <div class="border-t border-slate-800 pt-2">
       <div class="flex items-center justify-between mb-1.5">
         <h3 class="text-xs font-bold text-fuchsia-300">{$t.ownedItemsHeader}</h3>
         <button
@@ -710,49 +980,17 @@
             </button>
           {/if}
         {:else}
-          <div class="col-span-4 py-2 text-center text-[10px] text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div class="col-span-4 py-1.5 text-center text-[10px] text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800">
             {$t.emptyInventoryHint}
           </div>
         {/each}
       </div>
     </div>
 
-    <!-- Nearby Multiplayer Users & Active Space Pirates Quick Radar -->
+    <!-- 4. Real-time Game Log Feed -->
     <div class="border-t border-slate-800 pt-2">
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-bold text-emerald-300">{$t.nearbyRadarHeader}</span>
-        <button
-          type="button"
-          on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
-          class="text-[10px] text-rose-400 font-bold hover:underline"
-        >
-          {$t.combatControlLink}
-        </button>
-      </div>
-      <div class="space-y-1 max-h-28 overflow-y-auto text-[11px]">
-        {#each state.otherPlayers.slice(0, 3) as op}
-          <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/70">
-            <span class="text-emerald-300 truncate">🟢 {op.pilot_name} (Lv.{op.pilot_level})</span>
-            <span class="text-slate-400 font-mono text-[10px]">({op.x}, {op.z})</span>
-          </div>
-        {/each}
-        {#each state.pirates.slice(0, 2) as pr}
-          <button
-            type="button"
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
-            class="w-full flex items-center justify-between px-2 py-1 rounded bg-rose-950/50 border border-rose-500/30 text-left hover:bg-rose-900/50"
-          >
-            <span class="text-rose-300 font-bold truncate">🏴‍☠️ {localName(pr, $currentLang)}</span>
-            <span class="text-amber-300 text-[10px]">{pr.reward_credits} CR</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-
-    <!-- Real-time Game Log Feed -->
-    <div class="flex-1 flex flex-col min-h-0 border-t border-slate-800 pt-2">
       <div class="text-xs font-bold text-cyan-300 mb-1">{$t.gameLogHeader}</div>
-      <div class="space-y-1 overflow-y-auto text-[11px] text-slate-300 font-mono pr-1 max-h-40">
+      <div class="space-y-1 overflow-y-auto text-[11px] text-slate-300 font-mono pr-1 max-h-28">
         {#each state.logs as log}
           <div class="py-1 px-2 rounded bg-slate-950/70 border-l-2 border-cyan-500">{log}</div>
         {:else}
@@ -785,6 +1023,12 @@
             {state.flightTelemetry.nearestPlanetName} ({state.flightTelemetry.nearestDistance}km)
           </strong>
         </div>
+        {#if state.flightMode !== 'ORBIT'}
+          <div>
+            <span class="text-slate-400">⏱️ {$t.etaRemainingLabel}:</span>
+            <strong class="text-emerald-300">{state.flightTelemetry.etaSeconds}{$t.secUnit}</strong>
+          </div>
+        {/if}
       </div>
 
       <!-- On-Screen Manual Flight Thruster Controls -->
@@ -863,7 +1107,7 @@
       {/if}
     </div>
 
-    <!-- Main Planetary Facilities & Multiplayer Action Dock -->
+    <!-- Main Planetary Facilities & Multiplayer Action Dock + Large Right-Side LAUNCH Button -->
     <div
       class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl"
     >
@@ -938,6 +1182,20 @@
       >
         {$t.btnTavern}
       </button>
+
+      <!-- Large Prominent Right-Side Launch (출항: 수동운행 / AI 자동운행) Button -->
+      <button
+        type="button"
+        on:click={handlePrimaryLaunch}
+        class="ml-2 px-5 py-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-slate-950 font-extrabold text-sm shadow-[0_0_25px_rgba(16,185,129,0.65)] border-2 border-white/60 transition transform hover:scale-105 active:scale-95"
+      >
+        {$t.launchBigBtn}
+        {#if targetPlanet}
+          <span class="ml-1 text-xs font-mono">
+            [{localName(targetPlanet, $currentLang)} · ~{(state.user?.ai_agent_uses || 0) > 0 ? estAiSec : estManualSec}{$t.secUnit}]
+          </span>
+        {/if}
+      </button>
     </div>
   </footer>
 
@@ -955,6 +1213,7 @@
         <StarMapModal
           on:warp={(e) => handleWarp(e.detail)}
           on:manualFly={(e) => startManualFlightTo(e.detail)}
+          on:aiFly={(e) => startAiAutopilotFlight(e.detail)}
         />
       {:else if state.activeModal === 'COMBAT'}
         <CombatModal

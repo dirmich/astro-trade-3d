@@ -28,5 +28,15 @@ export default defineConfig(({ mode }) => {
       __APP_VERSION__: JSON.stringify(env.APP_VERSION || '1.0.0'),
       __SUPERUSER_EMAIL__: JSON.stringify(env.SUPERUSER_EMAIL || 'oldtv.cf@gmail.com'),
     },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            three: ['three'],
+          },
+        },
+      },
+    },
   };
 });

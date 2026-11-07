@@ -12,10 +12,25 @@
   const dispatch = createEventDispatcher<{
     warp: string;
     manualFly: string;
+    aiFly: string;
   }>();
 
   $: state = $gameStore;
   $: currentPlanet = state.planets.find((p) => p.id === state.user?.current_planet_id) || state.planets[0];
+  $: targetPlanet =
+    state.planets.find((p) => p.id === state.selectedTargetPlanetId) ||
+    state.planets.find((p) => p.id !== currentPlanet?.id) ||
+    state.planets[0];
+
+  function toRadarCoord(val: number): number {
+    // Map world coordinates (-1400..1400) to SVG 0..240
+    return Math.max(12, Math.min(228, 120 + (val / 1450) * 108));
+  }
+
+  function estimateFlightSec(distKm: number, isAi: boolean): number {
+    const spd = (isAi ? 42 : 34) * Number(state.user?.flightSpeedBonus || 1);
+    return Math.max(2, Math.ceil(distKm / spd));
+  }
 
   let selectedSector = '';
   let nowMs = Date.now();
@@ -163,63 +178,167 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[48vh] overflow-y-auto pr-1">
-      {#each sectorPlanets as p (p.id)}
-        {@const isCurrent = p.id === currentPlanet?.id}
-        {@const dx = Math.round(p.x - (state.flightTelemetry?.x || 0))}
-        {@const dy = Math.round(p.y - (state.flightTelemetry?.y || 0))}
-        {@const dz = Math.round(p.z - (state.flightTelemetry?.z || 0))}
-        {@const dist = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz))}
-
-        <div
-          class="p-4 rounded-2xl border transition flex flex-col justify-between {isCurrent
-            ? 'bg-cyan-950/50 border-cyan-400'
-            : 'bg-slate-800/80 border-slate-700 hover:border-cyan-500/50'}"
-        >
-          <div>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-3.5 h-3.5 rounded-full inline-block" style="background:{p.color_primary}"></span>
-                <h3 class="font-bold text-sm text-white">
-                  {localName(p, $currentLang)} <span class="text-xs text-slate-400">({p.name})</span>
-                </h3>
-              </div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-amber-300 border border-amber-500/30">
-                {$t.mapDangerLevel}{p.danger_level} · {p.biome}
-              </span>
-            </div>
-
-            <p class="text-xs text-slate-300 mt-2">{p.specialty_desc}</p>
-
-            <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono">
-              <span>{$t.mapCoordsLabel}: ({p.x}, {p.y}, {p.z})</span>
-              <span class="text-cyan-300 font-bold">{$t.mapDistFromShip}: {dist} km</span>
-            </div>
-          </div>
-
-          <div class="mt-3 pt-2.5 border-t border-slate-700/70 flex items-center justify-end gap-2">
-            {#if isCurrent && state.flightMode === 'ORBIT'}
-              <span class="px-3 py-1.5 rounded-lg bg-cyan-900/60 text-cyan-300 text-xs font-bold">
-                {$t.mapCurrentOrbitBadge}
-              </span>
-            {/if}
-            <button
-              type="button"
-              on:click={() => dispatch('manualFly', p.id)}
-              class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
-            >
-              {$t.mapManualFlyBtn}
-            </button>
-            <button
-              type="button"
-              on:click={() => dispatch('warp', p.id)}
-              class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
-            >
-              {$t.mapInstantWarpBtn}
-            </button>
-          </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Left: Interactive 2D Space Navigation Map Radar (SVG) -->
+      <div class="lg:col-span-5 p-3 rounded-2xl bg-slate-950/95 border border-cyan-500/40 flex flex-col items-center justify-between">
+        <div class="w-full flex items-center justify-between text-xs mb-1">
+          <span class="font-bold text-cyan-300">{$t.spaceMapHudTitle}</span>
+          {#if targetPlanet}
+            <span class="text-amber-300 font-bold truncate">
+              {$t.mapTargetLabel}: {localName(targetPlanet, $currentLang)}
+            </span>
+          {/if}
         </div>
-      {/each}
+
+        <svg viewBox="0 0 240 240" class="w-full max-w-[260px] aspect-square rounded-xl bg-slate-950 border border-slate-800">
+          <!-- Radar Grid Rings -->
+          <circle cx="120" cy="120" r="35" fill="none" stroke="#1e293b" stroke-dasharray="3 3" />
+          <circle cx="120" cy="120" r="70" fill="none" stroke="#1e293b" stroke-dasharray="3 3" />
+          <circle cx="120" cy="120" r="105" fill="none" stroke="#1e293b" stroke-dasharray="3 3" />
+          <line x1="120" y1="5" x2="120" y2="235" stroke="#0f172a" />
+          <line x1="5" y1="120" x2="235" y2="120" stroke="#0f172a" />
+
+          <!-- Central Sun -->
+          <circle cx="120" cy="120" r="5" fill="#fbbf24" />
+
+          <!-- Route Line from Ship to Selected Target Planet -->
+          {#if targetPlanet}
+            {@const sx = toRadarCoord(state.flightTelemetry?.x || 0)}
+            {@const sy = toRadarCoord(state.flightTelemetry?.z || 0)}
+            {@const tx = toRadarCoord(targetPlanet.x)}
+            {@const ty = toRadarCoord(targetPlanet.z)}
+            <line
+              x1={sx}
+              y1={sy}
+              x2={tx}
+              y2={ty}
+              stroke="#22d3ee"
+              stroke-width="1.8"
+              stroke-dasharray="4 3"
+            />
+          {/if}
+
+          <!-- Mapped Planets -->
+          {#each state.planets as mp (mp.id)}
+            {@const secUnlocked = getSectorMapStatus(state.user?.unlockedMaps, mp.sector, nowMs).active}
+            {#if secUnlocked}
+              {@const px = toRadarCoord(mp.x)}
+              {@const py = toRadarCoord(mp.z)}
+              {@const isSel = mp.id === targetPlanet?.id}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <g
+                class="cursor-pointer"
+                on:click={() => {
+                  selectedSector = mp.sector;
+                  gameStore.update((s) => ({ ...s, selectedTargetPlanetId: mp.id }));
+                }}
+              >
+                {#if isSel}
+                  <circle cx={px} cy={py} r="10" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="2 2" />
+                {/if}
+                <circle cx={px} cy={py} r={isSel ? 5.5 : 4} fill={mp.color_primary} stroke="#ffffff" stroke-width="0.8" />
+                <text x={px + 6} y={py + 3} fill={isSel ? '#fde68a' : '#cbd5e1'} font-size="7.5" font-weight="bold">
+                  {isSel ? '🎯 ' : ''}{localName(mp, $currentLang)}
+                </text>
+              </g>
+            {/if}
+          {/each}
+
+          <!-- Player Spaceship Position -->
+          {#if state.flightTelemetry}
+            {@const sx = toRadarCoord(state.flightTelemetry.x)}
+            {@const sy = toRadarCoord(state.flightTelemetry.z)}
+            <g transform="translate({sx}, {sy})">
+              <circle r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.2" />
+              <text x="-12" y="-7" fill="#6ee7b7" font-size="7.5" font-weight="bold">{$t.mapShipLabel}</text>
+            </g>
+          {/if}
+        </svg>
+
+        <div class="w-full text-[11px] text-center text-cyan-300 mt-1.5">
+          {$t.mapSteerHint}
+        </div>
+      </div>
+
+      <!-- Right: Sector Planet Cards with Distance & Travel Time -->
+      <div class="lg:col-span-7 grid grid-cols-1 gap-3 max-h-[48vh] overflow-y-auto pr-1">
+        {#each sectorPlanets as p (p.id)}
+          {@const isCurrent = p.id === currentPlanet?.id}
+          {@const isTarget = p.id === targetPlanet?.id}
+          {@const dx = Math.round(p.x - (state.flightTelemetry?.x || 0))}
+          {@const dy = Math.round(p.y - (state.flightTelemetry?.y || 0))}
+          {@const dz = Math.round(p.z - (state.flightTelemetry?.z || 0))}
+          {@const dist = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz))}
+          {@const estManualSec = estimateFlightSec(dist, false)}
+          {@const estAiSec = estimateFlightSec(dist, true)}
+
+          <div
+            class="p-3.5 rounded-2xl border transition flex flex-col justify-between {isTarget
+              ? 'bg-amber-950/35 border-amber-400'
+              : isCurrent
+              ? 'bg-cyan-950/50 border-cyan-400'
+              : 'bg-slate-800/80 border-slate-700 hover:border-cyan-500/50'}"
+          >
+            <div>
+              <div class="flex items-center justify-between">
+                <button
+                  type="button"
+                  on:click={() => gameStore.update((s) => ({ ...s, selectedTargetPlanetId: p.id }))}
+                  class="flex items-center gap-2 text-left"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full inline-block" style="background:{p.color_primary}"></span>
+                  <h3 class="font-bold text-sm text-white">
+                    {isTarget ? '🎯 ' : ''}{localName(p, $currentLang)} <span class="text-xs text-slate-400">({p.name})</span>
+                  </h3>
+                </button>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-amber-300 border border-amber-500/30">
+                  {$t.mapDangerLevel}{p.danger_level} · {p.biome}
+                </span>
+              </div>
+
+              <p class="text-xs text-slate-300 mt-1.5">{p.specialty_desc}</p>
+
+              <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono">
+                <span>{$t.mapCoordsLabel}: ({p.x}, {p.y}, {p.z})</span>
+                <span class="text-cyan-300 font-bold">{$t.mapDistFromShip}: {dist} km</span>
+                <span class="text-emerald-300 font-bold">
+                  ⏱️ {$t.estTravelTimeLabel}: ~{estManualSec}{$t.secUnit} (AI ~{estAiSec}{$t.secUnit})
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t border-slate-700/70 flex flex-wrap items-center justify-end gap-2">
+              {#if isCurrent && state.flightMode === 'ORBIT'}
+                <span class="px-2.5 py-1 rounded-lg bg-cyan-900/60 text-cyan-300 text-xs font-bold">
+                  {$t.mapCurrentOrbitBadge}
+                </span>
+              {/if}
+              <button
+                type="button"
+                on:click={() => dispatch('manualFly', p.id)}
+                class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+              >
+                {$t.mapManualFlyBtn} (~{estManualSec}{$t.secUnit})
+              </button>
+              <button
+                type="button"
+                on:click={() => dispatch('aiFly', p.id)}
+                class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold"
+              >
+                🤖 {$t.flyAiBtn} ({state.user?.ai_agent_uses || 0}) (~{estAiSec}{$t.secUnit})
+              </button>
+              <button
+                type="button"
+                on:click={() => dispatch('warp', p.id)}
+                class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
+              >
+                {$t.mapInstantWarpBtn}
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
     </div>
   {:else}
     <!-- Locked / Unmapped Sector View with Emergency 10x Purchase Option -->

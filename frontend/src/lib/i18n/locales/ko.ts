@@ -244,4 +244,23 @@ export const ko = {
   adminSimUsersBtn: '신규 유저 유입 & 자동 행성 확장 실행',
   adminCreatePlanetTitle: '신규 행성 수동 창조',
   adminCreatePlanetBtn: '신규 행성 즉시 추가',
+
+  // 우측 대형 출항 메뉴 & 실시간 우주지도 항법 레이더
+  launchMenuTitle: '🚀 출항 & 항법 관제 (수동 / AI 자동운행)',
+  launchBigBtn: '🚀 출항 (수동운행 / AI 자동운행)',
+  selectDestLabel: '🎯 목적지 행성 선택',
+  distLabel: '거리',
+  estTravelTimeLabel: '예상 운행시간',
+  secUnit: '초',
+  startAiFlightBtn: '🤖 AI 에이전트 자동운행 출항',
+  startManualFlightBtn: '🛸 수동운행 출항 (직접 조종)',
+  inFlightStatus: '🛰️ 항해 운행 중',
+  etaRemainingLabel: '남은 운행시간',
+  spaceMapHudTitle: '🗺️ 우주지도 항법 레이더',
+  mapTargetLabel: '🎯 목적지',
+  mapShipLabel: '🛸 내 함선',
+  mapSteerHint: '우주지도의 🎯 목적지 표시를 보고 W/A/S/D로 수동 조종하세요!',
+  mapNotOwnedTitle: '🔒 우주지도 미보유 (암흑 성역)',
+  mapNotOwnedDesc: '우주지도를 구매하여 소지하면 실시간 성도 레이더와 목적지 항법 마커가 표시됩니다.',
+  buyMapNowBtn: '🛒 우주지도 구매하기',
 };

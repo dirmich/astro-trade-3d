@@ -1,6 +1,6 @@
 # TASK: AstroTrade 3D 세부 개발 체크리스트 및 버전 기록
 
-- **문서 버전**: v1.0.4 (dev 배포: astro.lab.highmaru.com / astrob.lab.highmaru.com, 공용 PostgreSQL `astrotrade` 연동)
+- **문서 버전**: v1.0.5 (우측 대형 출항 메뉴, 거리 비례 AI 자동운행·수동운행 시간, 실시간 2D 우주지도 항법 레이더 및 3D 우주 렌더링·경고 제거)
 - **관리 원칙**: 각 Subtask 완료 시마다 버전을 업데이트하고 Git 커밋을 수행합니다.
 
 ---
@@ -56,3 +56,9 @@
 - [x] 공용 PostgreSQL 컨테이너에 DB `astrotrade` 생성, `DB_CLIENT=postgres`로 기동 — 시드 30개 행성·12종 자원·360개 시장·5개 유저 확인, 30초 시장 틱 동작 확인
 - [x] 배포 중 발견·수정: backend Dockerfile 최종 이미지에 `backend/node_modules` 누락 (`Cannot find package 'hono'`), Postgres INTEGER 32비트 오버플로 (`Date.now()` → BIGINT), postgres.js BIGINT 문자열 반환으로 시장 틱 NaN (BIGINT→Number 파서), 풀 커넥션 트랜잭션 분리 문제 (Postgres에서 BEGIN/COMMIT/ROLLBACK no-op)
 - [x] `deploy/docker-compose.yml.deploy`, `deploy/deploy.sh`, `deploy/.env.example`, `.github/workflows/docker.yml` 추가
+
+### Phase 8: 우측 대형 출항 메뉴·거리비례 AI자동운행·우주지도 항법레이더 및 3D 우주/경고 개선 (`v1.0.5`) — 완료
+- [x] 우측 HUD 상단 및 하단 메뉴 우측에 대형 `출항 (수동운행 / AI 자동운행)` 버튼 및 목적지 행성 선택기 배치
+- [x] AI 에이전트 보유 시 목적지 행성 선택 후 거리(`km`)에 비례하여 운행시간(`예상/남은 운행시간 초`)이 소요되는 AI 자동운행 및 수동운행 구현
+- [x] 우주지도 구매/소지 시 실시간 2D 우주지도 항법 레이더(SVG 성도) 표시 — 내 함선(`🛸`), 목적지 마커(`🎯`), 항법 가이드라인 표시 및 클릭 목적지 지정 지원
+- [x] 3D 우주 공간(`SpaceScene.ts`) 즉시 렌더링(태양·고리 행성·우주선·별무리) 및 TypeScript/Svelte/Vite 빌드 에러·경고 0건 달성

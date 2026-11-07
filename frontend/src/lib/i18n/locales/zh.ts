@@ -244,4 +244,23 @@ export const zh = {
   adminSimUsersBtn: '模拟新玩家涌入 & 执行星球扩展',
   adminCreatePlanetTitle: '手动创建新星球',
   adminCreatePlanetBtn: '立即添加新星球',
+
+  // 右侧大型出航菜单 & 实时星图导航雷达
+  launchMenuTitle: '🚀 出航与导航控制 (手动 / AI自动航行)',
+  launchBigBtn: '🚀 出航 (手动航行 / AI自动航行)',
+  selectDestLabel: '🎯 选择目的地星球',
+  distLabel: '距离',
+  estTravelTimeLabel: '预计航行时间',
+  secUnit: '秒',
+  startAiFlightBtn: '🤖 AI代理自动航行出航',
+  startManualFlightBtn: '🛸 手动航行出航 (亲自驾驶)',
+  inFlightStatus: '🛰️ 航行中',
+  etaRemainingLabel: '剩余航行时间',
+  spaceMapHudTitle: '🗺️ 宇宙星图导航雷达',
+  mapTargetLabel: '🎯 目的地',
+  mapShipLabel: '🛸 我的飞船',
+  mapSteerHint: '请根据星图上的🎯目的地标记，使用 W/A/S/D 手动驾驶飞船！',
+  mapNotOwnedTitle: '🔒 未持有宇宙星图 (未知星域)',
+  mapNotOwnedDesc: '购买并持有宇宙星图后，将显示实时星图雷达与目的地导航标记。',
+  buyMapNowBtn: '🛒 购买宇宙星图',
 };

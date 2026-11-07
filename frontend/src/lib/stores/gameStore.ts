@@ -6,7 +6,24 @@ import { currentLang } from '../i18n';
 import { soundEngine } from '../audio/SoundEngine';
 
 export const SUPERUSER_EMAIL = 'oldtv.cf@gmail.com';
-export const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+function resolveApiBase(): string {
+  const configured = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      if (!configured || configured.includes('localhost') || configured.includes('127.0.0.1')) {
+        if (host.startsWith('astro.')) {
+          return `${window.location.protocol}//${host.replace(/^astro\./, 'astrob.')}/api`;
+        }
+        return `${window.location.origin}/api`;
+      }
+    }
+  }
+  return configured || 'http://localhost:8000/api';
+}
+
+export const API_BASE = resolveApiBase();
 
 export interface FlightTelemetry {
   x: number;
@@ -21,6 +38,9 @@ export interface FlightTelemetry {
   canDock: boolean;
   targetPlanetId: string | null;
   targetDistance: number;
+  etaSeconds?: number;
+  headingDeg?: number;
+  targetBearingDeg?: number;
 }
 
 export const gameStore = writable({
@@ -57,7 +77,10 @@ export const gameStore = writable({
     nearestDistance: 0,
     canDock: true,
     targetPlanetId: 'planet_2',
-    targetDistance: 0,
+    targetDistance: 78,
+    etaSeconds: 4,
+    headingDeg: 0,
+    targetBearingDeg: 0,
   } as FlightTelemetry,
   activeModal: null as
     | null

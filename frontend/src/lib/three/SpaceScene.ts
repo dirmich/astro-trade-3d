@@ -32,11 +32,63 @@ interface HazardObject {
   velocity: THREE.Vector3;
 }
 
+const DEFAULT_FALLBACK_PLANETS: Planet3DData[] = [
+  {
+    id: 'planet_1',
+    name: 'Olympus Prime',
+    name_ko: '올림푸스 프라임',
+    biome: 'TERRAN',
+    sector: 'Core-Alpha',
+    x: 90,
+    y: -14,
+    z: 0,
+    radius: 5.5,
+    color_primary: '#2563eb',
+    color_secondary: '#10b981',
+    atmosphere_color: '#60a5fa',
+    has_rings: 1,
+    danger_level: 1,
+  },
+  {
+    id: 'planet_2',
+    name: 'Titan',
+    name_ko: '타이탄',
+    biome: 'GAS_MOON',
+    sector: 'Saturn-Ring',
+    x: 88.7,
+    y: -28,
+    z: 77.7,
+    radius: 6.2,
+    color_primary: '#d97706',
+    color_secondary: '#fcd34d',
+    atmosphere_color: '#fde68a',
+    has_rings: 1,
+    danger_level: 1,
+  },
+  {
+    id: 'planet_3',
+    name: 'Europa',
+    name_ko: '유로파',
+    biome: 'ICE',
+    sector: 'Jovian-Belt',
+    x: 18.5,
+    y: -14,
+    z: 144.8,
+    radius: 5.0,
+    color_primary: '#bae6fd',
+    color_secondary: '#38bdf8',
+    atmosphere_color: '#7dd3fc',
+    has_rings: 0,
+    danger_level: 1,
+  },
+];
+
 export class SpaceEngine3D {
   private container: HTMLElement;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
+  private resizeObserver: ResizeObserver | null = null;
   private shipGroup: THREE.Group;
   private thrusterFlames: THREE.Mesh[] = [];
   private miningBeam: THREE.Line | null = null;
@@ -56,9 +108,14 @@ export class SpaceEngine3D {
 
   // Flight modes: ORBIT | MANUAL | AI_AUTOPILOT
   private flightMode: 'ORBIT' | 'MANUAL' | 'AI_AUTOPILOT' = 'ORBIT';
-  private targetPos = new THREE.Vector3(95, 2, 12);
+  private orbitPlanet: Planet3DData = DEFAULT_FALLBACK_PLANETS[0];
+  private orbitAngle = 0.6;
+  private targetPos = new THREE.Vector3(104, -10, 14);
   private isWarping = false;
   private selectedTargetPlanetId: string | null = 'planet_2';
+
+  // AI Autopilot distance-proportional timing
+  private aiTotalDistance = 0;
 
   // Manual Flight Physics
   private shipYaw = 0;
@@ -103,30 +160,38 @@ export class SpaceEngine3D {
     this.onPirateEncounter = callbacks?.onPirateEncounter;
     this.onAiAutopilotArrive = callbacks?.onAiAutopilotArrive;
 
-    this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x020617, 0.0003);
+    const width = container.clientWidth || window.innerWidth || 1280;
+    const height = container.clientHeight || window.innerHeight || 720;
 
-    this.camera = new THREE.PerspectiveCamera(
-      60,
-      container.clientWidth / Math.max(1, container.clientHeight),
-      0.1,
-      8000
-    );
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x020617);
+    this.scene.fog = new THREE.FogExp2(0x020617, 0.00022);
+
+    this.camera = new THREE.PerspectiveCamera(60, width / Math.max(1, height), 0.1, 9000);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(width, height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.25;
+    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.domElement.style.display = 'block';
+    this.renderer.domElement.style.width = '100%';
+    this.renderer.domElement.style.height = '100%';
     container.appendChild(this.renderer.domElement);
 
     this.initLightsAndSun();
-    this.initStarfield(6000);
+    this.initStarfield(6500);
     this.initSpaceHazards();
     this.shipGroup = this.buildRealisticSpaceship(0xcbd5e1, 0x38bdf8);
-    this.shipGroup.position.set(95, 2, 12);
     this.scene.add(this.shipGroup);
     this.initNavigationVisuals();
+
+    // Immediately populate default planets so 3D space is visible from frame 1
+    this.syncPlanets(DEFAULT_FALLBACK_PLANETS);
+    this.warpToPlanet(DEFAULT_FALLBACK_PLANETS[0]);
+    this.shipGroup.position.copy(this.targetPos);
+    this.camera.position.set(this.targetPos.x + 12, this.targetPos.y + 7, this.targetPos.z + 18);
+    this.camera.lookAt(DEFAULT_FALLBACK_PLANETS[0].x, DEFAULT_FALLBACK_PLANETS[0].y, DEFAULT_FALLBACK_PLANETS[0].z);
 
     this.boundKeyDown = (e) => this.handleKey(e, true);
     this.boundKeyUp = (e) => this.handleKey(e, false);
@@ -137,6 +202,11 @@ export class SpaceEngine3D {
     window.addEventListener('keyup', this.boundKeyUp);
     this.renderer.domElement.addEventListener('pointerdown', this.boundPointerDown);
     window.addEventListener('resize', this.boundResize);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.onResize());
+      this.resizeObserver.observe(container);
+    }
 
     this.animate();
   }
@@ -158,7 +228,6 @@ export class SpaceEngine3D {
       opacity: 0.42,
     });
 
-    // 45 Asteroid Fragments
     for (let i = 0; i < 45; i++) {
       const angle = i * 0.45;
       const dist = 75 + (i % 15) * 42;
@@ -181,16 +250,11 @@ export class SpaceEngine3D {
       });
     }
 
-    // 25 Space Debris Wreckage
     for (let i = 0; i < 25; i++) {
       const angle = i * 0.78 + 0.3;
       const dist = 85 + (i % 12) * 45;
       const mesh = new THREE.Mesh(debrisGeo, debrisMat);
-      mesh.position.set(
-        Math.cos(angle) * dist,
-        ((i % 3) - 1) * 6,
-        Math.sin(angle) * dist
-      );
+      mesh.position.set(Math.cos(angle) * dist, ((i % 3) - 1) * 6, Math.sin(angle) * dist);
       this.scene.add(mesh);
       this.hazards.push({
         id: `deb_${i}`,
@@ -202,7 +266,6 @@ export class SpaceEngine3D {
       });
     }
 
-    // 12 Solar Wind Plasma Storms
     for (let i = 0; i < 12; i++) {
       const angle = i * 1.05;
       const dist = 110 + i * 52;
@@ -272,7 +335,6 @@ export class SpaceEngine3D {
     this.otherPlayersData = otherPlayers || [];
     this.piratesData = pirates || [];
 
-    // Sync Other Player Ships
     for (const p of this.otherPlayersData) {
       let grp = this.otherPlayerMeshes.get(p.id);
       if (!grp) {
@@ -289,7 +351,6 @@ export class SpaceEngine3D {
       grp.position.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.25);
     }
 
-    // Sync Space Pirate Ships (Hostile Crimson Ships with Red Beacon)
     for (const pr of this.piratesData) {
       let grp = this.pirateMeshes.get(pr.id);
       if (!grp) {
@@ -340,12 +401,20 @@ export class SpaceEngine3D {
     this.flightMode = mode;
     if (mode === 'ORBIT') {
       this.currentSpeed = 0;
+    } else if (mode === 'MANUAL' && this.currentSpeed < 0.8) {
+      this.currentSpeed = 1.2 * this.speedMultiplier;
     }
   }
 
   public startAiAutopilotTo(planet: Planet3DData) {
     this.selectedTargetPlanetId = planet.id;
     this.flightMode = 'AI_AUTOPILOT';
+    const goal = new THREE.Vector3(
+      planet.x + planet.radius * 2.1,
+      planet.y + 2,
+      planet.z + planet.radius * 2.1
+    );
+    this.aiTotalDistance = Math.max(10, this.shipGroup.position.distanceTo(goal));
     this.alignShipToPlanet(planet);
   }
 
@@ -374,8 +443,8 @@ export class SpaceEngine3D {
 
   private handlePointerDown(e: MouseEvent) {
     const rect = this.renderer.domElement.getBoundingClientRect();
-    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.mouse.x = ((e.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     const targets: THREE.Object3D[] = [];
@@ -407,17 +476,17 @@ export class SpaceEngine3D {
       dashSize: 6,
       gapSize: 3,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
     });
     this.navLine = new THREE.Line(lineGeo, lineMat);
     this.scene.add(this.navLine);
 
-    const beaconGeo = new THREE.RingGeometry(8, 10.2, 48);
+    const beaconGeo = new THREE.RingGeometry(8, 10.5, 48);
     const beaconMat = new THREE.MeshBasicMaterial({
       color: 0x22d3ee,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.75,
     });
     this.targetBeacon = new THREE.Mesh(beaconGeo, beaconMat);
     this.targetBeacon.rotation.x = Math.PI / 2;
@@ -426,10 +495,13 @@ export class SpaceEngine3D {
   }
 
   private initLightsAndSun() {
-    const ambient = new THREE.AmbientLight(0x1e293b, 1.45);
+    const ambient = new THREE.AmbientLight(0x334155, 2.2);
     this.scene.add(ambient);
 
-    const sunLight = new THREE.PointLight(0xfff7ed, 3.4, 5500, 0.45);
+    const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 1.1);
+    this.scene.add(hemiLight);
+
+    const sunLight = new THREE.PointLight(0xfff7ed, 4.2, 6500, 0.35);
     sunLight.position.set(0, 0, 0);
     this.scene.add(sunLight);
 
@@ -441,7 +513,7 @@ export class SpaceEngine3D {
     const coronaMat = new THREE.MeshBasicMaterial({
       color: 0xf97316,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.28,
       side: THREE.BackSide,
     });
     this.scene.add(new THREE.Mesh(coronaGeo, coronaMat));
@@ -453,11 +525,11 @@ export class SpaceEngine3D {
     const colors = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-      const r = 450 + Math.random() * 2600;
+      const r = 350 + Math.random() * 2800;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.45;
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.55;
       positions[i * 3 + 2] = r * Math.cos(phi);
 
       const tint = Math.random();
@@ -468,7 +540,7 @@ export class SpaceEngine3D {
 
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const mat = new THREE.PointsMaterial({ size: 2.1, vertexColors: true, transparent: true, opacity: 0.9 });
+    const mat = new THREE.PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.95 });
     this.starField = new THREE.Points(geo, mat);
     this.scene.add(this.starField);
   }
@@ -476,16 +548,16 @@ export class SpaceEngine3D {
   private buildRealisticSpaceship(hullColorHex: number = 0xcbd5e1, glowHex: number = 0x38bdf8): THREE.Group {
     const group = new THREE.Group();
 
-    const hullMat = new THREE.MeshStandardMaterial({ color: hullColorHex, metalness: 0.82, roughness: 0.28 });
-    const darkTrimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.4 });
+    const hullMat = new THREE.MeshStandardMaterial({ color: hullColorHex, metalness: 0.75, roughness: 0.28 });
+    const darkTrimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.4 });
     const cockpitMat = new THREE.MeshStandardMaterial({
       color: glowHex,
       emissive: glowHex,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: 0.65,
       metalness: 0.95,
       roughness: 0.1,
     });
-    const thrusterMat = new THREE.MeshBasicMaterial({ color: glowHex, transparent: true, opacity: 0.88 });
+    const thrusterMat = new THREE.MeshBasicMaterial({ color: glowHex, transparent: true, opacity: 0.9 });
 
     const fuselage = new THREE.Mesh(new THREE.ConeGeometry(1.3, 6.2, 8), hullMat);
     fuselage.rotation.x = -Math.PI / 2;
@@ -542,9 +614,15 @@ export class SpaceEngine3D {
   }
 
   public syncPlanets(planets: Planet3DData[]) {
+    if (!planets || planets.length === 0) return;
     this.planetsData = planets;
+
     for (const p of planets) {
-      if (this.planetMeshes.has(p.id)) continue;
+      const existing = this.planetMeshes.get(p.id);
+      if (existing) {
+        existing.position.set(p.x, p.y, p.z);
+        continue;
+      }
 
       const group = new THREE.Group();
       group.position.set(p.x, p.y, p.z);
@@ -552,7 +630,7 @@ export class SpaceEngine3D {
       const tex = this.createProceduralPlanetTexture(p.color_primary, p.color_secondary);
       const sphereMat = new THREE.MeshStandardMaterial({
         map: tex,
-        roughness: 0.65,
+        roughness: 0.6,
         metalness: 0.15,
       });
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 36, 36), sphereMat);
@@ -562,18 +640,18 @@ export class SpaceEngine3D {
       const atmoMat = new THREE.MeshBasicMaterial({
         color: p.atmosphere_color,
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.22,
         side: THREE.BackSide,
       });
-      group.add(new THREE.Mesh(new THREE.SphereGeometry(p.radius * 1.16, 28, 28), atmoMat));
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(p.radius * 1.18, 28, 28), atmoMat));
 
       if (p.has_rings) {
-        const ringGeo = new THREE.RingGeometry(p.radius * 1.45, p.radius * 2.35, 48);
+        const ringGeo = new THREE.RingGeometry(p.radius * 1.45, p.radius * 2.4, 48);
         const ringMat = new THREE.MeshBasicMaterial({
           color: p.color_secondary,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.5,
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.rotation.x = Math.PI / 2.3;
@@ -586,10 +664,17 @@ export class SpaceEngine3D {
   }
 
   public warpToPlanet(planet: Planet3DData) {
+    if (!planet) return;
+    this.orbitPlanet = planet;
     this.flightMode = 'ORBIT';
     this.isWarping = true;
     this.currentSpeed = 0;
-    this.targetPos.set(planet.x + planet.radius * 2.3, planet.y + 2.2, planet.z + planet.radius * 2.3);
+    const orbitRadius = Math.max(12, planet.radius * 2.8);
+    this.targetPos.set(
+      planet.x + Math.cos(this.orbitAngle) * orbitRadius,
+      planet.y + 2.5,
+      planet.z + Math.sin(this.orbitAngle) * orbitRadius
+    );
     setTimeout(() => {
       this.isWarping = false;
     }, 950);
@@ -615,9 +700,11 @@ export class SpaceEngine3D {
 
   private onResize() {
     if (!this.container) return;
-    this.camera.aspect = this.container.clientWidth / Math.max(1, this.container.clientHeight);
+    const width = this.container.clientWidth || window.innerWidth || 1280;
+    const height = this.container.clientHeight || window.innerHeight || 720;
+    this.camera.aspect = width / Math.max(1, height);
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    this.renderer.setSize(width, height);
   }
 
   private animate() {
@@ -627,7 +714,6 @@ export class SpaceEngine3D {
     const isBoosting = Boolean(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['BOOST']);
     const targetPlanet = this.planetsData.find((p) => p.id === this.selectedTargetPlanetId);
 
-    // Animate Hazards (Asteroids, Space Debris, Solar Winds)
     for (const h of this.hazards) {
       h.mesh.rotation.x += 0.008;
       h.mesh.rotation.y += 0.012;
@@ -635,7 +721,8 @@ export class SpaceEngine3D {
     }
 
     if (this.flightMode === 'AI_AUTOPILOT' && targetPlanet) {
-      // AI Agent Autopilot: Smoothly steer toward target planet while weaving around hazards
+      // Distance-based AI Autopilot Flight:
+      // Speed is calibrated (0.38 units/frame @ 60fps ≈ 22.8 km/s) so travel time scales directly with distance!
       const goal = new THREE.Vector3(
         targetPlanet.x + targetPlanet.radius * 2.1,
         targetPlanet.y + 2,
@@ -644,14 +731,15 @@ export class SpaceEngine3D {
       const toGoal = goal.clone().sub(this.shipGroup.position);
       const distToGoal = toGoal.length();
 
-      if (distToGoal <= 14) {
+      if (distToGoal <= 9) {
+        this.orbitPlanet = targetPlanet;
         this.flightMode = 'ORBIT';
         this.currentSpeed = 0;
         this.targetPos.copy(goal);
         this.onAiAutopilotArrive?.(targetPlanet.id);
       } else {
         this.alignShipToPlanet(targetPlanet);
-        this.currentSpeed = 3.2 * this.speedMultiplier;
+        this.currentSpeed = 0.42 * this.speedMultiplier;
         const euler = new THREE.Euler(this.shipPitch, this.shipYaw, 0, 'YXZ');
         this.shipGroup.quaternion.setFromEuler(euler);
         const dir = toGoal.normalize();
@@ -662,10 +750,10 @@ export class SpaceEngine3D {
         this.camera.lookAt(goal);
       }
     } else if (this.flightMode === 'MANUAL') {
-      // Direct Manual Flight Controls
+      // Direct Manual Flight Controls (Distance-proportional speed)
       const turnRate = 0.032;
       const pitchRate = 0.024;
-      const maxBaseSpeed = 2.6 * this.speedMultiplier * (isBoosting ? 2.2 : 1.0);
+      const maxBaseSpeed = 0.36 * this.speedMultiplier * (isBoosting ? 2.1 : 1.0);
 
       if (this.keys['KeyA'] || this.keys['ArrowLeft']) {
         this.shipYaw += turnRate;
@@ -690,7 +778,8 @@ export class SpaceEngine3D {
       } else if (this.keys['Space']) {
         this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, 0, 0.18);
       } else {
-        this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, 0, 0.015);
+        // Maintain gentle cruise speed in manual flight so ship glides forward after launch
+        this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, maxBaseSpeed * 0.45, 0.02);
       }
 
       const euler = new THREE.Euler(this.shipPitch, this.shipYaw, this.shipRoll, 'YXZ');
@@ -699,33 +788,29 @@ export class SpaceEngine3D {
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.shipGroup.quaternion);
       this.shipGroup.position.addScaledVector(forward, this.currentSpeed);
 
-      // Check Collisions in MANUAL Mode (Cooldown 3.5 seconds)
-      if (now - this.lastCollisionTime > 3500 && Math.abs(this.currentSpeed) > 0.25) {
-        // 1. Check Asteroid / Debris / Solar Wind collision
+      if (now - this.lastCollisionTime > 3500 && Math.abs(this.currentSpeed) > 0.08) {
         for (const h of this.hazards) {
           const d = this.shipGroup.position.distanceTo(h.mesh.position);
           if (d < h.radius + 2.4) {
             this.lastCollisionTime = now;
-            this.currentSpeed = -0.8; // Bounce back
+            this.currentSpeed = -0.3;
             this.triggerExplosionEffect(this.shipGroup.position, 0xf97316);
             this.onHazardCollision?.(h.type, h.name);
             break;
           }
         }
 
-        // 2. Check Other Player Spaceship collision
         for (const op of this.otherPlayersData) {
           const opGroup = this.otherPlayerMeshes.get(op.id);
           if (opGroup && this.shipGroup.position.distanceTo(opGroup.position) < 5.5) {
             this.lastCollisionTime = now;
-            this.currentSpeed = -1.0;
+            this.currentSpeed = -0.35;
             this.triggerExplosionEffect(this.shipGroup.position, 0xef4444);
             this.onHazardCollision?.('PLAYER_COLLISION', op.pilot_name);
             break;
           }
         }
 
-        // 3. Check Pirate Encounter Ambush proximity
         for (const pr of this.piratesData) {
           const prGroup = this.pirateMeshes.get(pr.id);
           if (prGroup && this.shipGroup.position.distanceTo(prGroup.position) < 12) {
@@ -748,26 +833,44 @@ export class SpaceEngine3D {
       const lookAhead = this.shipGroup.position.clone().add(forward.multiplyScalar(18));
       this.camera.lookAt(lookAhead);
     } else {
-      // ORBIT / WARP Mode
-      this.shipGroup.position.lerp(this.targetPos, this.isWarping ? 0.12 : 0.05);
-      this.shipGroup.lookAt(this.targetPos);
+      // ORBIT Mode: Gently orbit around the current planet with both the ship and planet in full view!
+      const p = this.orbitPlanet || this.planetsData[0] || DEFAULT_FALLBACK_PLANETS[0];
+      this.orbitAngle += 0.0022;
+      const orbitRadius = Math.max(13, p.radius * 2.7);
+      this.targetPos.set(
+        p.x + Math.cos(this.orbitAngle) * orbitRadius,
+        p.y + 2.2,
+        p.z + Math.sin(this.orbitAngle) * orbitRadius
+      );
 
-      const camOffset = new THREE.Vector3(0, 6.5, 16);
-      this.camera.position.lerp(this.shipGroup.position.clone().add(camOffset), 0.08);
-      this.camera.lookAt(this.shipGroup.position);
+      this.shipGroup.position.lerp(this.targetPos, this.isWarping ? 0.15 : 0.08);
+      const tangentTarget = new THREE.Vector3(
+        p.x + Math.cos(this.orbitAngle + 0.35) * orbitRadius,
+        p.y + 1.5,
+        p.z + Math.sin(this.orbitAngle + 0.35) * orbitRadius
+      );
+      this.shipGroup.lookAt(tangentTarget);
+
+      // Position camera behind & slightly outside the ship, looking toward the planet center
+      const camPos = new THREE.Vector3(
+        p.x + Math.cos(this.orbitAngle - 0.55) * (orbitRadius + 14),
+        p.y + 7.5,
+        p.z + Math.sin(this.orbitAngle - 0.55) * (orbitRadius + 14)
+      );
+      this.camera.position.lerp(camPos, 0.08);
+      this.camera.lookAt(p.x, p.y, p.z);
     }
 
-    // Animate thruster flames
     const flameScale =
       this.isWarping || isBoosting || this.flightMode === 'AI_AUTOPILOT'
         ? 2.2 + Math.sin(Date.now() * 0.03) * 0.4
-        : Math.max(0.5, Math.abs(this.currentSpeed) * 0.8 + 0.55 + Math.sin(Date.now() * 0.015) * 0.15);
+        : Math.max(0.55, Math.abs(this.currentSpeed) * 2.5 + 0.6 + Math.sin(Date.now() * 0.015) * 0.15);
     for (const flame of this.thrusterFlames) {
       flame.scale.set(1, flameScale, 1);
     }
 
     for (const [, pGroup] of this.planetMeshes) {
-      pGroup.rotation.y += 0.0025;
+      pGroup.rotation.y += 0.003;
     }
 
     if (targetPlanet && this.navLine && this.targetBeacon) {
@@ -802,19 +905,34 @@ export class SpaceEngine3D {
       }
 
       let targetDist = 0;
+      let targetBearingDeg = 0;
       if (targetPlanet) {
         const tdx = targetPlanet.x - this.shipGroup.position.x;
         const tdy = targetPlanet.y - this.shipGroup.position.y;
         const tdz = targetPlanet.z - this.shipGroup.position.z;
         targetDist = Math.round(Math.sqrt(tdx * tdx + tdy * tdy + tdz * tdz));
+        targetBearingDeg = Math.round((Math.atan2(-tdx, -tdz) * 180) / Math.PI);
       }
+
+      const speedKmPerSec =
+        this.flightMode === 'ORBIT'
+          ? 0
+          : Math.max(1, Math.round(Math.abs(this.currentSpeed) * 60));
+      const referenceSpeed =
+        this.flightMode === 'AI_AUTOPILOT'
+          ? Math.max(10, Math.round(0.42 * this.speedMultiplier * 60))
+          : this.flightMode === 'MANUAL'
+          ? Math.max(8, speedKmPerSec)
+          : Math.max(10, Math.round(0.38 * this.speedMultiplier * 60));
+      const etaSeconds = targetDist > 0 ? Math.max(1, Math.ceil(targetDist / referenceSpeed)) : 0;
+      const headingDeg = Math.round((this.shipYaw * 180) / Math.PI);
 
       const dockThreshold = nearest.radius * 4.2 + 24;
       this.onTelemetry({
         x: Math.round(this.shipGroup.position.x),
         y: Math.round(this.shipGroup.position.y),
         z: Math.round(this.shipGroup.position.z),
-        speed: Math.round(Math.abs(this.currentSpeed) * 180),
+        speed: speedKmPerSec,
         isBoosting,
         nearestPlanetId: nearest.id,
         nearestPlanetName: nearest.name_ko,
@@ -823,6 +941,9 @@ export class SpaceEngine3D {
         canDock: minDist <= dockThreshold,
         targetPlanetId: targetPlanet?.id || null,
         targetDistance: targetDist,
+        etaSeconds,
+        headingDeg,
+        targetBearingDeg,
       });
     }
 
@@ -831,6 +952,7 @@ export class SpaceEngine3D {
 
   public destroy() {
     cancelAnimationFrame(this.frameId);
+    this.resizeObserver?.disconnect();
     window.removeEventListener('keydown', this.boundKeyDown);
     window.removeEventListener('keyup', this.boundKeyUp);
     this.renderer.domElement.removeEventListener('pointerdown', this.boundPointerDown);

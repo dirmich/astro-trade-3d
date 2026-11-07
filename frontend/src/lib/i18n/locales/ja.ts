@@ -244,4 +244,23 @@ export const ja = {
   adminSimUsersBtn: '新規ユーザー流入＆自動惑星拡張を実行',
   adminCreatePlanetTitle: '新規惑星の手動作成',
   adminCreatePlanetBtn: '新規惑星を即時追加',
+
+  // 右側大型出航メニュー＆リアルタイム宇宙地図レーダー
+  launchMenuTitle: '🚀 出航＆航法管制 (手動 / AI自動運航)',
+  launchBigBtn: '🚀 出航 (手動運航 / AI自動運航)',
+  selectDestLabel: '🎯 目的地の惑星を選択',
+  distLabel: '距離',
+  estTravelTimeLabel: '予想運航時間',
+  secUnit: '秒',
+  startAiFlightBtn: '🤖 AIエージェント自動運航で出航',
+  startManualFlightBtn: '🛸 手動運航で出航 (直接操縦)',
+  inFlightStatus: '🛰️ 航行中',
+  etaRemainingLabel: '残り運航時間',
+  spaceMapHudTitle: '🗺️ 宇宙地図 航法レーダー',
+  mapTargetLabel: '🎯 目的地',
+  mapShipLabel: '🛸 自艦',
+  mapSteerHint: '宇宙地図の🎯目的地マーカーを見て W/A/S/D で手動操縦してください！',
+  mapNotOwnedTitle: '🔒 宇宙地図未所持 (暗黒宙域)',
+  mapNotOwnedDesc: '宇宙地図を購入して所持するとリアルタイム星図レーダーと目的地マーカーが表示されます。',
+  buyMapNowBtn: '🛒 宇宙地図を購入',
 };

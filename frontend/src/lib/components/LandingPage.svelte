@@ -26,10 +26,10 @@
 </script>
 
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/35 overflow-y-auto"
 >
   <div
-    class="max-w-4xl w-full rounded-3xl bg-slate-900/95 border border-cyan-500/40 shadow-[0_0_50px_rgba(6,182,212,0.25)] p-6 md:p-8 space-y-6"
+    class="max-w-4xl w-full rounded-3xl bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 shadow-[0_0_50px_rgba(6,182,212,0.25)] p-6 md:p-8 space-y-6"
   >
     <!-- Top Bar: Brand + Language Selector (English Default + KO/JA/ZH) -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">

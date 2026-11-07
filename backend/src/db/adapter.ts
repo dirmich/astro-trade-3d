@@ -307,8 +307,8 @@ export async function getDb(): Promise<DatabaseAdapter> {
         bigint: {
           to: 20,
           from: [20],
-          parse: (x) => Number(x),
-          serialize: (x) => String(x),
+          parse: (x: string) => Number(x),
+          serialize: (x: number | string | bigint) => String(x),
         },
       },
     });
