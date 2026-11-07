@@ -1,0 +1,58 @@
+# AstroTrade 3D - dev 배포용 Docker Compose
+# dev ~/0.service/astro-trade/docker-compose.yml.deploy
+# 이미지: dirmich/astro:latest (frontend), dirmich/astrob:latest (backend)
+# DB: dev 공용 PostgreSQL 컨테이너(postgres:5432), DB astrotrade (deploy.sh이 생성)
+# 도메인: astro.lab.highmaru.com (frontend), astrob.lab.highmaru.com (backend)
+
+services:
+  backend:
+    extends:
+      file: ../common/marulimit.yml
+      service: maru-base
+    container_name: astrob
+    image: dirmich/astrob:latest
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      DB_CLIENT: postgres
+      POSTGRES_URL: ${POSTGRES_URL}
+      BACKEND_HOST: "0.0.0.0"
+      BACKEND_PORT: "8000"
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-https://astrob.lab.highmaru.com}
+    networks:
+      backend:
+        ipv4_address: 10.0.1.62
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    extends:
+      file: ../common/marulimit.yml
+      service: maru-base
+    container_name: astro
+    image: dirmich/astro:latest
+    restart: unless-stopped
+    networks:
+      frontend:
+        ipv4_address: 10.0.0.62
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  frontend:
+    name: frontend
+    external: true
+  backend:
+    name: backend
+    external: true

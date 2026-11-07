@@ -1,6 +1,6 @@
 # TASK: AstroTrade 3D 세부 개발 체크리스트 및 버전 기록
 
-- **문서 버전**: v1.0.2 (`man.sh` 프로세스 관리 스크립트 및 Dockerize 구성 완료)
+- **문서 버전**: v1.0.4 (dev 배포: astro.lab.highmaru.com / astrob.lab.highmaru.com, 공용 PostgreSQL `astrotrade` 연동)
 - **관리 원칙**: 각 Subtask 완료 시마다 버전을 업데이트하고 Git 커밋을 수행합니다.
 
 ---
@@ -48,3 +48,11 @@
 - [x] 루트 `man.sh` (`./man.sh [start|stop|status|restart] [backend|frontend|none]`) 작성 및 검증
 - [x] `backend/Dockerfile`, `frontend/Dockerfile`, 루트 `docker-compose.yml`, `.dockerignore` 작성 (`host.docker.internal` 공용 DB 연동 지원)
 - [x] `docs/ENV_GUIDE.md` 환경변수 소유권 및 설정 가이드 작성
+
+### Phase 7: dev 배포 및 PostgreSQL 대응 (`v1.0.4`) — 완료
+- [x] dev `~/0.service/astro-trade/` 구성 (`deploy.sh`, `docker-compose.yml.deploy`, `.env.prod`) — 다른 프로젝트와 동일 패턴
+- [x] Docker 이미지 `dirmich/astro:latest` (frontend), `dirmich/astrob:latest` (backend) 빌드 (dev 로컬 빌드; Docker Hub 푸시는 GitHub Action `docker.yml` 경유 예정)
+- [x] HAProxy에 `astro.lab.highmaru.com` / `astrob.lab.highmaru.com` 추가 (와일드카드 `*.lab.highmaru.com` 인증서 재사용, 백엔드 WebSocket Upgrade 전달)
+- [x] 공용 PostgreSQL 컨테이너에 DB `astrotrade` 생성, `DB_CLIENT=postgres`로 기동 — 시드 30개 행성·12종 자원·360개 시장·5개 유저 확인, 30초 시장 틱 동작 확인
+- [x] 배포 중 발견·수정: backend Dockerfile 최종 이미지에 `backend/node_modules` 누락 (`Cannot find package 'hono'`), Postgres INTEGER 32비트 오버플로 (`Date.now()` → BIGINT), postgres.js BIGINT 문자열 반환으로 시장 틱 NaN (BIGINT→Number 파서), 풀 커넥션 트랜잭션 분리 문제 (Postgres에서 BEGIN/COMMIT/ROLLBACK no-op)
+- [x] `deploy/docker-compose.yml.deploy`, `deploy/deploy.sh`, `deploy/.env.example`, `.github/workflows/docker.yml` 추가

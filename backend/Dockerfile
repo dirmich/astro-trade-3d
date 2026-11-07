@@ -13,6 +13,10 @@ ENV BACKEND_PORT=8000
 COPY --from=install /app/node_modules ./node_modules
 COPY package.json ./
 COPY backend ./backend
+# Bun installs workspace deps into backend/node_modules (not hoisted to
+# the root node_modules, which only holds the .bun cache). Without this
+# the runtime fails with: Cannot find package hono.
+COPY --from=install /app/backend/node_modules ./backend/node_modules
 RUN mkdir -p /app/backend/data
 EXPOSE 8000
 CMD ["bun", "backend/src/index.ts"]

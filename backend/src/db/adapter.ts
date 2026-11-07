@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS space_pirates (
 `;
 
 export const POSTGRES_SCHEMA = SQLITE_SCHEMA
-  .replace(/INTEGER/g, 'INTEGER')
+  .replace(/INTEGER/g, 'BIGINT')
   .replace(/REAL/g, 'DOUBLE PRECISION');
 
 export interface DatabaseAdapter {
@@ -189,7 +189,7 @@ async function ensureColumnsExist(db: DatabaseAdapter) {
     `ALTER TABLE users ADD COLUMN ship_x REAL NOT NULL DEFAULT 95`,
     `ALTER TABLE users ADD COLUMN ship_y REAL NOT NULL DEFAULT 2`,
     `ALTER TABLE users ADD COLUMN ship_z REAL NOT NULL DEFAULT 12`,
-    `ALTER TABLE users ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN last_seen_at BIGINT NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'LOCAL'`,
   ];
   for (const stmt of alterStatements) {
@@ -297,10 +297,31 @@ export async function getDb(): Promise<DatabaseAdapter> {
 
   if (ENV.DB_CLIENT === 'postgres') {
     const postgres = (await import('postgres')).default;
-    const sqlClient = postgres(ENV.POSTGRES_URL);
+    const sqlClient = postgres(ENV.POSTGRES_URL, {
+      // postgres.js returns int8/BIGINT as string by default; this codebase
+      // was written against SQLite 64-bit INTEGER and does arithmetic on
+      // these values (e.g. market tick stock + drift), so parse BIGINT as
+      // JS number. Values here (credits, stock, ms timestamps) are far
+      // below 2^53, so this is safe.
+      types: {
+        bigint: {
+          to: 20,
+          from: [20],
+          parse: (x) => Number(x),
+          serialize: (x) => String(x),
+        },
+      },
+    });
     dbInstance = {
       clientType: 'postgres',
       async exec(sql: string) {
+        // postgres.js uses a pooled connection: BEGIN/COMMIT/ROLLBACK issued
+        // as separate calls may land on different connections and strand
+        // them in-transaction (market tick runs every 30s). Single
+        // statements are atomic on Postgres anyway, so skip them here.
+        // SQLite path below keeps real transactions.
+        const verb = sql.trim().toUpperCase();
+        if (verb === "BEGIN" || verb === "BEGIN TRANSACTION" || verb === "COMMIT" || verb === "ROLLBACK") return;
         await sqlClient.unsafe(sql);
       },
       async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
