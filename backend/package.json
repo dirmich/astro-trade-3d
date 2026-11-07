@@ -1,6 +1,6 @@
 {
   "name": "astro-trade-3d-backend",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Bun + Hono + SQLite/PostgreSQL Backend for AstroTrade 3D",
   "type": "module",
   "scripts": {

@@ -1,10 +1,19 @@
 <script lang="ts">
   import { gameStore, fetchUniverse, addGameLog, API_BASE } from '../stores/gameStore';
+  import { t } from '../i18n';
 
   $: state = $gameStore;
   let wager = 1000;
+  let statusMsg = '';
+  let errorMsg = '';
+
+  function closeModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
 
   async function triggerTavern(actionType: 'RUMOR' | 'GAMBLE' | 'HIRE_CREW' | 'RANDOM_DRINK') {
+    statusMsg = '';
+    errorMsg = '';
     if (!state.user) return;
     const res = await fetch(`${API_BASE}/game/tavern`, {
       method: 'POST',
@@ -12,33 +21,71 @@
       body: JSON.stringify({ userId: state.user.id, actionType, wager }),
     });
     const data = await res.json();
+    if (!res.ok || data.error) {
+      errorMsg = data.error || 'Action failed';
+      return;
+    }
     if (data.user) {
       gameStore.update((s) => ({ ...s, user: data.user }));
+      statusMsg = data.message || '';
       addGameLog(data.message);
       await fetchUniverse();
     }
   }
 </script>
 
-<div class="p-6 bg-slate-900/95 border border-amber-500/40 rounded-2xl max-w-2xl w-full space-y-4">
-  <h2 class="text-xl font-bold text-amber-300">🍸 네뷸라 라운지 (우주 술집)</h2>
-  <p class="text-xs text-slate-400">성간 무역상, 정보 브로커, 용병, 도박사들이 모여 고급 시세 루머와 일확천금을 거래하는 공간입니다.</p>
-  <div class="grid grid-cols-2 gap-3">
-    <button on:click={() => triggerTavern('RUMOR')} class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-left">
-      <div class="font-bold text-sm text-amber-400">🕵️ 비밀 시세 루머 매수 (600 CR)</div>
-      <div class="text-xs text-slate-400">특정 행성의 자원 폭등/폭락 정보 즉시 입수</div>
+<div class="p-6 bg-slate-900/95 border border-amber-500/45 rounded-2xl max-w-2xl w-full shadow-2xl space-y-4">
+  <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+    <div>
+      <h2 class="text-xl font-bold text-amber-300">{$t.tavernModalTitle}</h2>
+      <p class="text-xs text-slate-400 mt-0.5">{$t.tavernModalSubtitle}</p>
+    </div>
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold shadow shrink-0"
+    >
+      {$t.closeBtn}
     </button>
-    <button on:click={() => triggerTavern('HIRE_CREW')} class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-left">
-      <div class="font-bold text-sm text-cyan-400">🧑‍🚀 베테랑 선원 영입 (3,500 CR)</div>
-      <div class="text-xs text-slate-400">항해 연료 절감·채굴량 보너스 전문가 고용</div>
+  </div>
+
+  {#if statusMsg}
+    <div class="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-xs text-emerald-200">
+      {statusMsg}
+    </div>
+  {/if}
+  {#if errorMsg}
+    <div class="p-2.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-xs text-rose-200">
+      ⚠️ {errorMsg}
+    </div>
+  {/if}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <button type="button" on:click={() => triggerTavern('RUMOR')} class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left border border-slate-700">
+      <div class="font-bold text-sm text-amber-400">{$t.tavernRumorTitle}</div>
+      <div class="text-xs text-slate-400 mt-0.5">{$t.tavernRumorDesc}</div>
     </button>
-    <button on:click={() => triggerTavern('GAMBLE')} class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-left">
-      <div class="font-bold text-sm text-purple-400">🎲 퀀텀 다이스 베팅 ({wager} CR)</div>
-      <div class="text-xs text-slate-400">합 8 이상 2배, 합 12 잭팟 3배 배당</div>
+    <button type="button" on:click={() => triggerTavern('HIRE_CREW')} class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left border border-slate-700">
+      <div class="font-bold text-sm text-cyan-400">{$t.tavernCrewTitle}</div>
+      <div class="text-xs text-slate-400 mt-0.5">{$t.tavernCrewDesc}</div>
     </button>
-    <button on:click={() => triggerTavern('RANDOM_DRINK')} class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-left">
-      <div class="font-bold text-sm text-emerald-400">🍹 은하 특주 주문 & 랜덤 조우 (250 CR)</div>
-      <div class="text-xs text-slate-400">고대 광맥 좌표 획득 또는 무료 선체 수리</div>
+    <button type="button" on:click={() => triggerTavern('GAMBLE')} class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left border border-slate-700">
+      <div class="font-bold text-sm text-purple-400">{$t.tavernGambleTitle} ({wager} CR)</div>
+      <div class="text-xs text-slate-400 mt-0.5">{$t.tavernGambleDesc}</div>
+    </button>
+    <button type="button" on:click={() => triggerTavern('RANDOM_DRINK')} class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-left border border-slate-700">
+      <div class="font-bold text-sm text-emerald-400">{$t.tavernDrinkTitle}</div>
+      <div class="text-xs text-slate-400 mt-0.5">{$t.tavernDrinkDesc}</div>
+    </button>
+  </div>
+
+  <div class="flex justify-end pt-2 border-t border-slate-800">
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-600"
+    >
+      {$t.closeBtn}
     </button>
   </div>
 </div>

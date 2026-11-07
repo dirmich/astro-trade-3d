@@ -1,10 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { gameStore, fetchFriendsList, addGameLog, API_BASE } from '../stores/gameStore';
-  import { t } from '../i18n';
+  import { currentLang, localName, t } from '../i18n';
 
   $: state = $gameStore;
   let statusMsg = '';
+
+  function closeModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
 
   onMount(() => {
     if (state.user?.id) {
@@ -42,23 +46,22 @@
     await fetchFriendsList(state.user.id);
   }
 
-  function getPlanetName(pid: string) {
+  function getPlanetName(pid: string, lang: string) {
     const p = state.planets.find((pl) => pl.id === pid);
-    return p ? `${p.name_ko} (${p.sector})` : 'Deep Space';
+    return p ? `${localName(p, lang)} (${p.sector})` : 'Deep Space';
   }
 </script>
 
 <div class="p-6 bg-slate-900/95 border border-emerald-500/50 rounded-2xl max-w-4xl w-full shadow-2xl space-y-4">
-  <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+  <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
     <div>
-      <h2 class="text-xl font-bold text-emerald-300">🤝 멀티유저 친구 목록 & 친구 요청·수락 관제</h2>
-      <p class="text-xs text-slate-400 mt-0.5">
-        친구 요청 및 수락을 통해 친구로 등록되면 실시간 접속 상태(🟢 ONLINE)와 현재 행성이 표시되며, 고레벨 우주해적을 함께 협동 공격할 수 있습니다.
-      </p>
+      <h2 class="text-xl font-bold text-emerald-300">{$t.friendsModalTitle}</h2>
+      <p class="text-xs text-slate-400 mt-0.5">{$t.friendsModalSubtitle}</p>
     </div>
     <button
-      on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-      class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+      type="button"
+      on:click={closeModal}
+      class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold shadow shrink-0"
     >
       {$t.closeBtn}
     </button>
@@ -70,11 +73,11 @@
     </div>
   {/if}
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-1">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[55vh] overflow-y-auto pr-1">
     <!-- Left Column: Registered Friends (Online Status Visible!) + Incoming Requests -->
     <div class="space-y-3">
       <h3 class="text-sm font-bold text-emerald-300">
-        🟢 등록된 친구 리스트 ({state.friends.length}명)
+        {$t.friendsRegisteredHeader} ({state.friends.length})
       </h3>
 
       {#each state.friends as fr (fr.id)}
@@ -82,7 +85,7 @@
           <div>
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold {fr.isOnline ? 'text-emerald-400' : 'text-slate-500'}">
-                {fr.isOnline ? '🟢 접속중(ONLINE)' : '⚫ 오프라인'}
+                {fr.isOnline ? $t.friendsOnlineBadge : $t.friendsOfflineBadge}
               </span>
               <span class="font-bold text-sm text-white">{fr.pilot_name}</span>
               <span class="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 text-[10px] font-bold">
@@ -90,34 +93,36 @@
               </span>
             </div>
             <div class="text-[11px] text-slate-400 mt-1">
-              위치: <strong class="text-cyan-300">{getPlanetName(fr.current_planet_id)}</strong> · 함선: {fr.ship_name}
+              {$t.friendsLocationLabel}: <strong class="text-cyan-300">{getPlanetName(fr.current_planet_id, $currentLang)}</strong> · {fr.ship_name}
             </div>
           </div>
 
           <div class="flex flex-col gap-1">
             <button
+              type="button"
               on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
               class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold"
             >
-              🏴‍☠️ 해적 협동공격
+              {$t.friendsCoopRaidBtn}
             </button>
             <button
+              type="button"
               on:click={() => respondFriendRequest(fr.friendshipId, 'REJECT')}
               class="px-2.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px]"
             >
-              친구 해제
+              {$t.friendsRemoveBtn}
             </button>
           </div>
         </div>
       {:else}
         <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
-          아직 등록된 친구가 없습니다. 우측 목록에서 파일럿에게 친구 요청을 보내거나 수락해보세요!
+          {$t.friendsEmptyMsg}
         </div>
       {/each}
 
       {#if state.incomingRequests.length > 0}
         <h3 class="text-sm font-bold text-amber-300 pt-2">
-          📩 받은 친구 요청 ({state.incomingRequests.length}건)
+          {$t.friendsIncomingHeader} ({state.incomingRequests.length})
         </h3>
         {#each state.incomingRequests as req}
           <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 flex items-center justify-between">
@@ -127,16 +132,18 @@
             </div>
             <div class="flex gap-1.5">
               <button
+                type="button"
                 on:click={() => respondFriendRequest(req.friendshipId, 'ACCEPT')}
                 class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold"
               >
-                수락
+                {$t.friendsAcceptBtn}
               </button>
               <button
+                type="button"
                 on:click={() => respondFriendRequest(req.friendshipId, 'REJECT')}
                 class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs"
               >
-                거절
+                {$t.friendsRejectBtn}
               </button>
             </div>
           </div>
@@ -147,7 +154,7 @@
     <!-- Right Column: Discover Active Pilots & Send Friend Request -->
     <div class="space-y-3">
       <h3 class="text-sm font-bold text-cyan-300">
-        🛰️ 은하계 파일럿 탐색 & 친구 요청 ({state.discoverPilots.length}명)
+        {$t.friendsDiscoverHeader} ({state.discoverPilots.length})
       </h3>
 
       {#each state.discoverPilots as p (p.id)}
@@ -163,27 +170,38 @@
               </span>
             </div>
             <div class="text-[11px] text-slate-400 mt-0.5">
-              자산: {(p.net_worth || p.credits).toLocaleString()} CR · {getPlanetName(p.current_planet_id)}
+              {$t.hudNetWorth}: {(p.net_worth || p.credits).toLocaleString()} CR · {getPlanetName(p.current_planet_id, $currentLang)}
             </div>
           </div>
 
           <div class="flex gap-1.5">
             <button
+              type="button"
               on:click={() => sendFriendRequest(p.id, false)}
               class="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-bold"
             >
-              📩 친구 요청
+              {$t.friendsRequestBtn}
             </button>
             <button
+              type="button"
               on:click={() => sendFriendRequest(p.id, true)}
               class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold"
-              title="상대 파일럿이 즉시 수락하여 친구 목록에 등록됩니다"
             >
-              🤝 요청+즉시수락
+              {$t.friendsAutoAcceptBtn}
             </button>
           </div>
         </div>
       {/each}
     </div>
+  </div>
+
+  <div class="flex justify-end pt-2 border-t border-slate-800">
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-600"
+    >
+      {$t.closeBtn}
+    </button>
   </div>
 </div>

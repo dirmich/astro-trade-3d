@@ -16,7 +16,7 @@
     API_BASE,
   } from './lib/stores/gameStore';
   import { SpaceEngine3D } from './lib/three/SpaceScene';
-  import { currentLang, getSupportedLocales, t } from './lib/i18n';
+  import { currentLang, getSupportedLocales, localName, t } from './lib/i18n';
   import { soundEngine } from './lib/audio/SoundEngine';
 
   import LandingPage from './lib/components/LandingPage.svelte';
@@ -411,7 +411,19 @@
   function holdControl(code: string, active: boolean) {
     engine?.setControlInput(code, active);
   }
+
+  function closeActiveModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
 </script>
+
+<svelte:window
+  on:keydown={(e) => {
+    if (e.key === 'Escape' && state.activeModal) {
+      closeActiveModal();
+    }
+  }}
+/>
 
 <div class="relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
   <!-- 3D Space WebGL Canvas -->
@@ -439,11 +451,12 @@
         <span
           class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-500/40"
         >
-          🪐 {currentPlanet.name_ko} · {currentPlanet.sector}
+          🪐 {localName(currentPlanet, $currentLang)} · {currentPlanet.sector}
         </span>
       {/if}
 
       <button
+        type="button"
         on:click={() => {
           if (state.flightMode !== 'ORBIT') {
             handleManualDock(currentPlanet?.id);
@@ -466,10 +479,11 @@
 
       <!-- BGM Player & Language Switcher (Persisted to DB) -->
       <div class="hidden xl:flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-[11px]">
-        <button on:click={toggleBgm} class="text-cyan-300 font-bold hover:text-white">
+        <button type="button" on:click={toggleBgm} class="text-cyan-300 font-bold hover:text-white">
           {bgmEnabled ? '🔊' : '🔇'} {state.currentBgmName}
         </button>
         <button
+          type="button"
           on:click={() => soundEngine.nextRandomTrack()}
           class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 ml-1"
           title="Play another random Space BGM track"
@@ -481,6 +495,7 @@
       <div class="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800">
         {#each locales as loc}
           <button
+            type="button"
             on:click={() => changeLanguage(loc.code)}
             class="px-1.5 py-0.5 rounded text-[10px] font-bold {$currentLang === loc.code
               ? 'bg-cyan-600 text-white'
@@ -517,12 +532,13 @@
           class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold"
           title="Remaining AI Autopilot Agent Uses"
         >
-          🤖 {$t.hudAiAgent}: {state.user.ai_agent_uses || 0}회
+          🤖 {$t.hudAiAgent}: {state.user.ai_agent_uses || 0} {$t.usesUnit}
         </span>
 
         <!-- Superadmin Menu (Only shown for Superadmin!) -->
         {#if state.user.isSuperAdmin}
           <button
+            type="button"
             on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'ADMIN' }))}
             class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow"
           >
@@ -531,7 +547,8 @@
         {/if}
 
         <button
-          on:click={() => gameStore.update((s) => ({ ...s, user: null }))}
+          type="button"
+          on:click={() => gameStore.update((s) => ({ ...s, user: null, activeModal: null }))}
           class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
         >
           {$t.btnLogout}
@@ -548,10 +565,11 @@
       <div>
         <h2 class="text-xs font-bold text-cyan-300 uppercase tracking-wider">{$t.navHeader}</h2>
         <div class="text-[10px] text-slate-400">
-          🟢 {$t.hudOnlinePilots}: {state.otherPlayers.length + 1} · 🏴‍☠️ Pirates: {state.pirates.length}
+          🟢 {$t.hudOnlinePilots}: {state.otherPlayers.length + 1} · 🏴‍☠️ {$t.hudPirates}: {state.pirates.length}
         </div>
       </div>
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
         class="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold"
       >
@@ -563,17 +581,19 @@
     {#if !hudSectorMapStatus.active}
       <div class="p-2.5 rounded-xl bg-rose-950/85 border border-rose-500/60 space-y-1.5">
         <div class="flex items-center justify-between text-[11px] font-bold text-rose-300">
-          <span>🚨 [{activeSectorForHud}] Map Locked!</span>
-          <span>{emergencyRemainingHud}/3 Left</span>
+          <span>🚨 [{activeSectorForHud}] {$t.mapLockedAlert}</span>
+          <span>{emergencyRemainingHud}/3 {$t.leftUnit}</span>
         </div>
         <div class="flex gap-1.5">
           <button
+            type="button"
             on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
             class="flex-1 py-1 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[10px] font-bold"
           >
-            🛒 Shop ({(hudSectorMapSpec?.base_price || 800).toLocaleString()} CR)
+            {$t.shopShortBtn} ({(hudSectorMapSpec?.base_price || 800).toLocaleString()} CR)
           </button>
           <button
+            type="button"
             on:click={() => handleEmergencyMapBuy(activeSectorForHud)}
             disabled={emergencyRemainingHud <= 0}
             class="flex-1 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 text-white text-[10px] font-bold"
@@ -584,7 +604,7 @@
       </div>
     {:else}
       <div class="px-2.5 py-1 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-between text-[11px]">
-        <span class="text-emerald-300 font-semibold">🟢 [{activeSectorForHud}] Map Active</span>
+        <span class="text-emerald-300 font-semibold">🟢 [{activeSectorForHud}] {$t.mapActiveLabel}</span>
         <span class="font-mono text-emerald-400 font-bold">{formatDuration(hudSectorMapStatus.remainingSec)}</span>
       </div>
     {/if}
@@ -605,6 +625,7 @@
         >
           <div class="flex items-center justify-between">
             <button
+              type="button"
               on:click={() => {
                 gameStore.update((s) => ({ ...s, selectedTargetPlanetId: p.id }));
                 if (engine) engine.setTargetPlanet(p.id);
@@ -612,14 +633,14 @@
               class="text-left flex items-center gap-1.5 truncate"
             >
               <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{p.color_primary}"></span>
-              <span class="font-bold text-xs text-white truncate">{p.name_ko}</span>
+              <span class="font-bold text-xs text-white truncate">{localName(p, $currentLang)}</span>
               <span class="text-[10px] text-slate-400">({p.sector})</span>
             </button>
 
             {#if isCurrent && state.flightMode === 'ORBIT'}
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold">Docked</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold">{$t.dockedBadge}</span>
             {:else if !pSectorStatus.active}
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300">🔒 Locked</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300">{$t.lockedBadge}</span>
             {:else}
               <span class="text-[10px] text-cyan-300">Lv.{p.danger_level}</span>
             {/if}
@@ -627,23 +648,23 @@
 
           <div class="mt-2 grid grid-cols-3 gap-1">
             <button
+              type="button"
               on:click={() => startManualFlightTo(p.id)}
               class="py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white text-[10px] font-bold"
-              title="Direct manual piloting (Free, watch out for asteroids & pirates!)"
             >
               {$t.flyManualBtn}
             </button>
             <button
+              type="button"
               on:click={() => startAiAutopilotFlight(p.id)}
               class="py-1 rounded-lg bg-sky-600/90 hover:bg-sky-500 text-white text-[10px] font-bold"
-              title="AI Autopilot Agent (Consumes 1 AI Agent charge - cheaper than Warp!)"
             >
               {$t.flyAiBtn} ({state.user?.ai_agent_uses || 0})
             </button>
             <button
+              type="button"
               on:click={() => handleWarp(p.id)}
               class="py-1 rounded-lg bg-purple-600/90 hover:bg-purple-500 text-white text-[10px] font-bold"
-              title="Hyperspace Warp (Requires 1 purchased Warp Jump Cell)"
             >
               {$t.flyWarpBtn} ({state.user?.warp_tickets || 0})
             </button>
@@ -659,12 +680,13 @@
   >
     <div>
       <div class="flex items-center justify-between mb-1.5">
-        <h3 class="text-xs font-bold text-fuchsia-300">🎒 보유 아이템 & 해적 전리품</h3>
+        <h3 class="text-xs font-bold text-fuchsia-300">{$t.ownedItemsHeader}</h3>
         <button
+          type="button"
           on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
           class="text-[11px] text-cyan-300 hover:underline"
         >
-          Shop →
+          {$t.shopLink}
         </button>
       </div>
 
@@ -674,11 +696,12 @@
           {#if spec && Number(count) > 0}
             {@const lvStyle = getItemLevelStyle(spec.level)}
             <button
+              type="button"
               on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
-              title="{spec.name_ko} ({lvStyle.label}) - {spec.effect_summary}"
+              title="{localName(spec, $currentLang)} ({lvStyle.label}) - {spec.effect_summary}"
               class="relative aspect-square rounded-xl overflow-hidden bg-slate-950 p-0.5 {lvStyle.borderClass}"
             >
-              <img src={spec.image_url} alt={spec.name_ko} class="w-full h-full object-cover rounded-lg" />
+              <img src={spec.image_url} alt={localName(spec, $currentLang)} class="w-full h-full object-cover rounded-lg" />
               <span
                 class="absolute bottom-0.5 right-0.5 px-1 rounded bg-slate-950/90 text-[9px] font-bold {lvStyle.textClass}"
               >
@@ -688,7 +711,7 @@
           {/if}
         {:else}
           <div class="col-span-4 py-2 text-center text-[10px] text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800">
-            상점 구매 아이템 및 해적 비매품 전리품이 이곳에 표시됩니다.
+            {$t.emptyInventoryHint}
           </div>
         {/each}
       </div>
@@ -697,12 +720,13 @@
     <!-- Nearby Multiplayer Users & Active Space Pirates Quick Radar -->
     <div class="border-t border-slate-800 pt-2">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-bold text-emerald-300">🛰️ 주변 항해 유저 & 우주해적</span>
+        <span class="text-xs font-bold text-emerald-300">{$t.nearbyRadarHeader}</span>
         <button
+          type="button"
           on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
           class="text-[10px] text-rose-400 font-bold hover:underline"
         >
-          🏴‍☠️ 교전 관제 →
+          {$t.combatControlLink}
         </button>
       </div>
       <div class="space-y-1 max-h-28 overflow-y-auto text-[11px]">
@@ -714,10 +738,11 @@
         {/each}
         {#each state.pirates.slice(0, 2) as pr}
           <button
+            type="button"
             on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
             class="w-full flex items-center justify-between px-2 py-1 rounded bg-rose-950/50 border border-rose-500/30 text-left hover:bg-rose-900/50"
           >
-            <span class="text-rose-300 font-bold truncate">🏴‍☠️ {pr.name_ko}</span>
+            <span class="text-rose-300 font-bold truncate">🏴‍☠️ {localName(pr, $currentLang)}</span>
             <span class="text-amber-300 text-[10px]">{pr.reward_credits} CR</span>
           </button>
         {/each}
@@ -726,12 +751,12 @@
 
     <!-- Real-time Game Log Feed -->
     <div class="flex-1 flex flex-col min-h-0 border-t border-slate-800 pt-2">
-      <div class="text-xs font-bold text-cyan-300 mb-1">📡 함교 항해·전투 로그</div>
+      <div class="text-xs font-bold text-cyan-300 mb-1">{$t.gameLogHeader}</div>
       <div class="space-y-1 overflow-y-auto text-[11px] text-slate-300 font-mono pr-1 max-h-40">
         {#each state.logs as log}
           <div class="py-1 px-2 rounded bg-slate-950/70 border-l-2 border-cyan-500">{log}</div>
         {:else}
-          <div class="text-slate-500 text-xs">Waiting for telemetry...</div>
+          <div class="text-slate-500 text-xs">{$t.waitingTelemetry}</div>
         {/each}
       </div>
     </div>
@@ -745,17 +770,17 @@
     >
       <div class="flex items-center gap-3 text-xs font-mono pr-2 border-r border-slate-700">
         <div>
-          <span class="text-slate-400">POS:</span>
+          <span class="text-slate-400">{$t.posLabel}:</span>
           <strong class="text-cyan-300">
             ({state.flightTelemetry.x}, {state.flightTelemetry.y}, {state.flightTelemetry.z})
           </strong>
         </div>
         <div>
-          <span class="text-slate-400">SPD:</span>
+          <span class="text-slate-400">{$t.spdLabel}:</span>
           <strong class="text-emerald-400">{state.flightTelemetry.speed} km/s</strong>
         </div>
         <div>
-          <span class="text-slate-400">NEAR:</span>
+          <span class="text-slate-400">{$t.nearLabel}:</span>
           <strong class="text-amber-300">
             {state.flightTelemetry.nearestPlanetName} ({state.flightTelemetry.nearestDistance}km)
           </strong>
@@ -765,6 +790,7 @@
       <!-- On-Screen Manual Flight Thruster Controls -->
       <div class="flex items-center gap-1.5">
         <button
+          type="button"
           on:mousedown={() => holdControl('KeyA', true)}
           on:mouseup={() => holdControl('KeyA', false)}
           on:mouseleave={() => holdControl('KeyA', false)}
@@ -773,14 +799,16 @@
           ◀ A
         </button>
         <button
+          type="button"
           on:mousedown={() => holdControl('KeyW', true)}
           on:mouseup={() => holdControl('KeyW', false)}
           on:mouseleave={() => holdControl('KeyW', false)}
           class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-xs font-bold text-white"
         >
-          ▲ W (Thrust)
+          {$t.thrustBtn}
         </button>
         <button
+          type="button"
           on:mousedown={() => holdControl('KeyS', true)}
           on:mouseup={() => holdControl('KeyS', false)}
           on:mouseleave={() => holdControl('KeyS', false)}
@@ -789,6 +817,7 @@
           ▼ S
         </button>
         <button
+          type="button"
           on:mousedown={() => holdControl('KeyD', true)}
           on:mouseup={() => holdControl('KeyD', false)}
           on:mouseleave={() => holdControl('KeyD', false)}
@@ -797,6 +826,7 @@
           ▶ D
         </button>
         <button
+          type="button"
           on:mousedown={() => holdControl('BOOST', true)}
           on:mouseup={() => holdControl('BOOST', false)}
           on:mouseleave={() => holdControl('BOOST', false)}
@@ -806,22 +836,25 @@
         </button>
         {#if targetPlanet}
           <button
+            type="button"
             on:click={() => startManualFlightTo(targetPlanet.id)}
             class="px-2.5 py-1 rounded-lg bg-cyan-800 hover:bg-cyan-700 text-xs font-bold text-cyan-200"
           >
-            🎯 Align [{targetPlanet.name_ko}]
+            {$t.alignBtn} [{localName(targetPlanet, $currentLang)}]
           </button>
           <button
+            type="button"
             on:click={() => startAiAutopilotFlight(targetPlanet.id)}
             class="px-2.5 py-1 rounded-lg bg-sky-700 hover:bg-sky-600 text-xs font-bold text-white"
           >
-            🤖 AI Pilot ({state.user?.ai_agent_uses || 0})
+            {$t.flyAiBtn} ({state.user?.ai_agent_uses || 0})
           </button>
         {/if}
       </div>
 
       {#if state.flightMode !== 'ORBIT' && state.flightTelemetry.canDock}
         <button
+          type="button"
           on:click={() => handleManualDock(state.flightTelemetry.nearestPlanetId || undefined)}
           class="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg animate-bounce"
         >
@@ -835,6 +868,7 @@
       class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl"
     >
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
         class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs shadow border border-fuchsia-400/50"
       >
@@ -842,6 +876,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
         class="px-3.5 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs"
       >
@@ -849,6 +884,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
         class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow border border-rose-400/50"
       >
@@ -856,6 +892,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'FRIENDS' }))}
         class="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs"
       >
@@ -863,6 +900,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'QUESTS' }))}
         class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
       >
@@ -870,6 +908,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'TRADE' }))}
         class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
       >
@@ -877,6 +916,7 @@
       </button>
 
       <button
+        type="button"
         on:click={handleMineOrbital}
         class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
       >
@@ -884,6 +924,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'REPAIR' }))}
         class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
       >
@@ -891,6 +932,7 @@
       </button>
 
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'TAVERN' }))}
         class="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs"
       >
@@ -899,10 +941,13 @@
     </div>
   </footer>
 
-  <!-- Modal Overlay Container -->
+  <!-- Modal Overlay Container (Click backdrop or press ESC or click Close button to exit) -->
   {#if state.activeModal}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm"
+      on:click|self={closeActiveModal}
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto"
     >
       {#if state.activeModal === 'SHOP'}
         <ShopModal />
@@ -924,45 +969,13 @@
       {:else if state.activeModal === 'QUESTS'}
         <QuestModal />
       {:else if state.activeModal === 'TRADE'}
-        <div class="relative max-w-4xl w-full">
-          <button
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-            class="absolute top-4 right-4 z-10 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200"
-          >
-            {$t.closeBtn}
-          </button>
-          <TradingPostModal />
-        </div>
+        <TradingPostModal />
       {:else if state.activeModal === 'REPAIR'}
-        <div class="relative max-w-2xl w-full">
-          <button
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-            class="absolute top-4 right-4 z-10 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200"
-          >
-            {$t.closeBtn}
-          </button>
-          <RepairShopModal />
-        </div>
+        <RepairShopModal />
       {:else if state.activeModal === 'TAVERN'}
-        <div class="relative max-w-2xl w-full">
-          <button
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-            class="absolute top-4 right-4 z-10 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200"
-          >
-            {$t.closeBtn}
-          </button>
-          <TavernModal />
-        </div>
+        <TavernModal />
       {:else if state.activeModal === 'ADMIN'}
-        <div class="relative max-w-4xl w-full">
-          <button
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-            class="absolute top-4 right-4 z-10 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200"
-          >
-            {$t.closeBtn}
-          </button>
-          <AdminModal />
-        </div>
+        <AdminModal />
       {/if}
     </div>
   {/if}

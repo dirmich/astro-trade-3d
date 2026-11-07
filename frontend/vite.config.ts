@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     plugins: [svelte()],
     envDir: rootDir,
     server: {
+      host: true,
       port: Number(env.FRONTEND_PORT || 3000),
       proxy: {
         '/api': {

@@ -8,6 +8,7 @@
     API_BASE,
     SUPERUSER_EMAIL,
   } from '../stores/gameStore';
+  import { currentLang, t } from '../i18n';
 
   $: state = $gameStore;
   let adminTab: 'QUEST_EDITOR' | 'GALAXY' = 'QUEST_EDITOR';
@@ -32,6 +33,10 @@
   let newPlanetNameKo = '페르세포네 프라임';
   let newPlanetBiome = 'CRYSTAL';
   let simUserCount = 4;
+
+  function closeModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
 
   onMount(() => {
     loadAdminQuests();
@@ -148,28 +153,37 @@
 <div class="p-6 bg-slate-900/95 border border-rose-500/50 rounded-2xl max-w-4xl w-full space-y-4 shadow-2xl">
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
     <div>
-      <h2 class="text-xl font-bold text-rose-400">👑 슈퍼유저 통합 관리 콘솔 & 퀘스트 에디터 ({SUPERUSER_EMAIL})</h2>
+      <h2 class="text-xl font-bold text-rose-400">{$t.adminModalTitle} ({SUPERUSER_EMAIL})</h2>
       <span class="text-xs text-slate-400">
-        행성: {state.planets.length}개 · 등록 유저: {state.totalUsers}명 · 등록 퀘스트: {adminQuests.length}개
+        {$t.adminStatsSummary}: {state.planets.length} / {state.totalUsers} / {adminQuests.length}
       </span>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <button
+        type="button"
         on:click={() => (adminTab = 'QUEST_EDITOR')}
         class="px-3 py-1.5 rounded-xl text-xs font-bold {adminTab === 'QUEST_EDITOR'
           ? 'bg-rose-600 text-white'
           : 'bg-slate-800 text-slate-300'}"
       >
-        📜 퀘스트 에디터 (Quest Editor)
+        {$t.adminTabQuestEditor}
       </button>
       <button
+        type="button"
         on:click={() => (adminTab = 'GALAXY')}
         class="px-3 py-1.5 rounded-xl text-xs font-bold {adminTab === 'GALAXY'
           ? 'bg-cyan-600 text-white'
           : 'bg-slate-800 text-slate-300'}"
       >
-        🪐 행성 확장 & 유저 시뮬레이션
+        {$t.adminTabGalaxy}
+      </button>
+      <button
+        type="button"
+        on:click={closeModal}
+        class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold shadow"
+      >
+        {$t.closeBtn}
       </button>
     </div>
   </div>
@@ -181,62 +195,63 @@
   {/if}
 
   {#if adminTab === 'QUEST_EDITOR'}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-1">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[58vh] overflow-y-auto pr-1">
       <!-- Left: Create / Edit Quest Form -->
       <div class="p-4 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2.5">
         <div class="flex items-center justify-between">
           <h3 class="font-bold text-sm text-amber-300">
-            {editingId ? `✏️ 퀘스트 수정 (${editingId})` : '➕ 신규 레벨별 퀘스트 생성'}
+            {editingId ? `${$t.adminEditQuestTitle} (${editingId})` : $t.adminNewQuestTitle}
           </h3>
           {#if editingId}
-            <button on:click={resetQuestForm} class="text-xs text-cyan-400 hover:underline">신규 작성으로 전환</button>
+            <button type="button" on:click={resetQuestForm} class="text-xs text-cyan-400 hover:underline">{$t.adminSwitchToNewBtn}</button>
           {/if}
         </div>
 
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <span class="block text-slate-400 mb-1">요구 최소 레벨 (Lv.1~10)</span>
+            <span class="block text-slate-400 mb-1">{$t.adminMinLevelLabel}</span>
             <input type="number" min="1" max="10" bind:value={qMinLevel} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700" />
           </div>
           <div>
-            <span class="block text-slate-400 mb-1">퀘스트 타입</span>
+            <span class="block text-slate-400 mb-1">{$t.adminQuestTypeLabel}</span>
             <select bind:value={qQuestType} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700">
-              <option value="MINE">MINE (자원 채굴)</option>
-              <option value="TRADE">TRADE (교역소 매매)</option>
-              <option value="KILL_PIRATE">KILL_PIRATE (해적 격파)</option>
-              <option value="VISIT_PLANET">VISIT_PLANET (행성 항해)</option>
+              <option value="MINE">MINE</option>
+              <option value="TRADE">TRADE</option>
+              <option value="KILL_PIRATE">KILL_PIRATE</option>
+              <option value="VISIT_PLANET">VISIT_PLANET</option>
             </select>
           </div>
           <div>
-            <span class="block text-slate-400 mb-1">목표 수량</span>
+            <span class="block text-slate-400 mb-1">{$t.adminTargetAmountLabel}</span>
             <input type="number" min="1" bind:value={qTargetAmount} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700" />
           </div>
           <div>
-            <span class="block text-slate-400 mb-1">보상 크레딧 (CR)</span>
+            <span class="block text-slate-400 mb-1">{$t.adminRewardCreditsLabel}</span>
             <input type="number" step="100" bind:value={qRewardCredits} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700" />
           </div>
           <div class="col-span-2">
-            <span class="block text-slate-400 mb-1">보상 초공간 워프 셀 개수</span>
+            <span class="block text-slate-400 mb-1">{$t.adminRewardWarpLabel}</span>
             <input type="number" min="0" max="10" bind:value={qRewardWarpTickets} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700" />
           </div>
         </div>
 
-        <input bind:value={qTitleEn} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="영어 제목 (English Title)" />
-        <input bind:value={qTitleKo} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="한국어 제목 (Korean Title)" />
-        <input bind:value={qDescEn} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="영어 설명 (English Description)" />
-        <input bind:value={qDescKo} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="한국어 설명 (Korean Description)" />
+        <input bind:value={qTitleEn} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="English Title" />
+        <input bind:value={qTitleKo} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="Korean Title" />
+        <input bind:value={qDescEn} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="English Description" />
+        <input bind:value={qDescKo} class="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs" placeholder="Korean Description" />
 
         <button
+          type="button"
           on:click={saveQuest}
           class="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow"
         >
-          💾 데이터베이스에 퀘스트 저장
+          {$t.adminSaveQuestBtn}
         </button>
       </div>
 
       <!-- Right: Existing Quests List -->
       <div class="space-y-2">
-        <h3 class="font-bold text-sm text-cyan-300">등록된 퀘스트 목록 ({adminQuests.length}개)</h3>
+        <h3 class="font-bold text-sm text-cyan-300">{$t.adminQuestListHeader} ({adminQuests.length})</h3>
         {#each adminQuests as q (q.id)}
           <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
             <div class="min-w-0">
@@ -244,24 +259,28 @@
                 <span class="px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 text-[10px] font-bold">
                   Lv.{q.min_level}+
                 </span>
-                <span class="font-bold text-xs text-white truncate">{q.title_ko}</span>
+                <span class="font-bold text-xs text-white truncate">
+                  {$currentLang === 'ko' ? q.title_ko : q.title_en}
+                </span>
               </div>
               <div class="text-[11px] text-slate-400 truncate mt-0.5">
-                {q.quest_type} x{q.target_amount} · 보상 {q.reward_credits.toLocaleString()} CR / 워프셀 +{q.reward_warp_tickets}
+                {q.quest_type} x{q.target_amount} · +{q.reward_credits.toLocaleString()} CR / +⚡{q.reward_warp_tickets}
               </div>
             </div>
             <div class="flex gap-1 shrink-0">
               <button
+                type="button"
                 on:click={() => selectQuestForEdit(q)}
                 class="px-2.5 py-1 rounded bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-bold"
               >
-                수정
+                {$t.adminEditBtn}
               </button>
               <button
+                type="button"
                 on:click={() => deleteQuest(q.id)}
                 class="px-2.5 py-1 rounded bg-rose-800 hover:bg-rose-700 text-white text-[11px] font-bold"
               >
-                삭제
+                {$t.adminDeleteBtn}
               </button>
             </div>
           </div>
@@ -269,23 +288,33 @@
       </div>
     </div>
   {:else}
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div class="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
-        <h3 class="font-bold text-sm text-cyan-300">유저 증가 시뮬레이션 & 자동 행성 추가</h3>
-        <p class="text-xs text-slate-400">사용자 수가 늘어날수록 그리스/로마 신화 및 위성 이름의 신규 행성이 자동 생성됩니다.</p>
-        <button on:click={handleSimulateUsers} class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-bold">
-          + {simUserCount}명 신규 유저 유입 & 자동 행성 확장 실행
+        <h3 class="font-bold text-sm text-cyan-300">{$t.adminSimUsersTitle}</h3>
+        <p class="text-xs text-slate-400">{$t.adminSimUsersDesc}</p>
+        <button type="button" on:click={handleSimulateUsers} class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-bold">
+          +{simUserCount} {$t.adminSimUsersBtn}
         </button>
       </div>
 
       <div class="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
-        <h3 class="font-bold text-sm text-amber-300">신규 행성 수동 창조</h3>
-        <input bind:value={newPlanetName} class="w-full px-2 py-1 rounded bg-slate-900 text-xs border border-slate-700" placeholder="영문 행성명" />
-        <input bind:value={newPlanetNameKo} class="w-full px-2 py-1 rounded bg-slate-900 text-xs border border-slate-700" placeholder="한글 행성명" />
-        <button on:click={handleAddPlanet} class="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold">
-          신규 행성 즉시 추가
+        <h3 class="font-bold text-sm text-amber-300">{$t.adminCreatePlanetTitle}</h3>
+        <input bind:value={newPlanetName} class="w-full px-2 py-1 rounded bg-slate-900 text-xs border border-slate-700" placeholder="English Name" />
+        <input bind:value={newPlanetNameKo} class="w-full px-2 py-1 rounded bg-slate-900 text-xs border border-slate-700" placeholder="Korean Name" />
+        <button type="button" on:click={handleAddPlanet} class="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold">
+          {$t.adminCreatePlanetBtn}
         </button>
       </div>
     </div>
   {/if}
+
+  <div class="flex justify-end pt-2 border-t border-slate-800">
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-600"
+    >
+      {$t.closeBtn}
+    </button>
+  </div>
 </div>

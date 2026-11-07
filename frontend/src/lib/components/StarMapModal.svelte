@@ -7,6 +7,7 @@
     formatDuration,
     API_BASE,
   } from '../stores/gameStore';
+  import { currentLang, localName, t } from '../i18n';
 
   const dispatch = createEventDispatcher<{
     warp: string;
@@ -21,6 +22,10 @@
   let timer: any;
   let errorMsg = '';
   let statusMsg = '';
+
+  function closeModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
 
   onMount(() => {
     selectedSector = currentPlanet?.sector || 'Core-Alpha';
@@ -50,7 +55,7 @@
     errorMsg = '';
     statusMsg = '';
     if (!state.user) {
-      errorMsg = '먼저 상단 우측에서 파일럿 로그인을 진행해주세요.';
+      errorMsg = 'Please sign in first.';
       return;
     }
 
@@ -64,7 +69,7 @@
     });
     const data = await res.json();
     if (!res.ok || data.error) {
-      errorMsg = data.error || '긴급 우주지도 구매 실패';
+      errorMsg = data.error || 'Emergency map purchase failed';
       addGameLog(`❌ ${errorMsg}`);
       return;
     }
@@ -81,29 +86,29 @@
   <!-- Header -->
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
     <div>
-      <h2 class="text-xl font-bold text-cyan-300">🗺️ 성간 구역별 우주지도 & 항법 관제소</h2>
-      <p class="text-xs text-slate-400 mt-0.5">
-        상점에서 구역별 우주지도를 구매하면 정해진 유효기간 동안 해당 구역의 행성 좌표와 항로가 표시됩니다. 지도 없이 항해 중 급히 구매할 경우 <strong class="text-rose-400">10배 가격(최대 3회)</strong>에 긴급 수신할 수 있습니다.
-      </p>
+      <h2 class="text-xl font-bold text-cyan-300">{$t.mapModalTitle}</h2>
+      <p class="text-xs text-slate-400 mt-0.5">{$t.mapModalSubtitle}</p>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       {#if state.user}
         <span class="px-3 py-1.5 rounded-xl bg-slate-800 border border-rose-500/40 text-xs text-rose-300 font-semibold">
-          🚨 긴급 성도 구매 가능: {emergencyRemaining}/3회
+          🚨 {$t.shopEmergencyQuota}: {emergencyRemaining}/3
         </span>
       {/if}
       <button
+        type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
         class="px-3 py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold"
       >
-        🛒 행성 상점(정가 구매) 이동
+        {$t.mapGoToShopBtn}
       </button>
       <button
-        on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+        type="button"
+        on:click={closeModal}
+        class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold shadow"
       >
-        ✕ 닫기
+        {$t.closeBtn}
       </button>
     </div>
   </div>
@@ -113,6 +118,7 @@
     {#each allSectors as sec}
       {@const st = getSectorMapStatus(state.user?.unlockedMaps, sec, nowMs)}
       <button
+        type="button"
         on:click={() => {
           selectedSector = sec;
           errorMsg = '';
@@ -146,18 +152,18 @@
 
   <!-- Sector Content: Active Map vs Locked Unmapped Sector -->
   {#if mapStatus.active}
-    <div class="flex items-center justify-between px-4 py-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs">
       <div class="flex items-center gap-2 text-emerald-300 font-semibold">
-        <span>🛰️ [{selectedSector}] 구역 우주지도 활성화됨</span>
+        <span>🛰️ [{selectedSector}] {$t.mapSectorActiveBanner}</span>
         <span class="text-slate-400">|</span>
-        <span>탐지된 행성: {sectorPlanets.length}개</span>
+        <span>{$t.mapDetectedPlanets}: {sectorPlanets.length}</span>
       </div>
       <div class="font-mono font-bold text-emerald-400">
-        ⏱️ 지도 유효기간 남음: {formatDuration(mapStatus.remainingSec)}
+        ⏱️ {$t.remainingTimeLabel}: {formatDuration(mapStatus.remainingSec)}
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[52vh] overflow-y-auto pr-1">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[48vh] overflow-y-auto pr-1">
       {#each sectorPlanets as p (p.id)}
         {@const isCurrent = p.id === currentPlanet?.id}
         {@const dx = Math.round(p.x - (state.flightTelemetry?.x || 0))}
@@ -175,39 +181,41 @@
               <div class="flex items-center gap-2">
                 <span class="w-3.5 h-3.5 rounded-full inline-block" style="background:{p.color_primary}"></span>
                 <h3 class="font-bold text-sm text-white">
-                  {p.name_ko} <span class="text-xs text-slate-400">({p.name})</span>
+                  {localName(p, $currentLang)} <span class="text-xs text-slate-400">({p.name})</span>
                 </h3>
               </div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-amber-300 border border-amber-500/30">
-                위험도 Lv.{p.danger_level} · {p.biome}
+                {$t.mapDangerLevel}{p.danger_level} · {p.biome}
               </span>
             </div>
 
             <p class="text-xs text-slate-300 mt-2">{p.specialty_desc}</p>
 
             <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono">
-              <span>좌표: ({p.x}, {p.y}, {p.z})</span>
-              <span class="text-cyan-300 font-bold">현재 함선으로부터 거리: {dist} km</span>
+              <span>{$t.mapCoordsLabel}: ({p.x}, {p.y}, {p.z})</span>
+              <span class="text-cyan-300 font-bold">{$t.mapDistFromShip}: {dist} km</span>
             </div>
           </div>
 
           <div class="mt-3 pt-2.5 border-t border-slate-700/70 flex items-center justify-end gap-2">
             {#if isCurrent && state.flightMode === 'ORBIT'}
               <span class="px-3 py-1.5 rounded-lg bg-cyan-900/60 text-cyan-300 text-xs font-bold">
-                📍 현재 정박 궤도
+                {$t.mapCurrentOrbitBadge}
               </span>
             {/if}
             <button
+              type="button"
               on:click={() => dispatch('manualFly', p.id)}
               class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
             >
-              🛸 직접 운행으로 비행
+              {$t.mapManualFlyBtn}
             </button>
             <button
+              type="button"
               on:click={() => dispatch('warp', p.id)}
               class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
             >
-              ⚡ 즉시 워프
+              {$t.mapInstantWarpBtn}
             </button>
           </div>
         </div>
@@ -226,29 +234,41 @@
 
       <div class="space-y-1">
         <h3 class="text-lg font-bold text-rose-300">
-          🔒 [{selectedSector}] 구역 우주지도가 없거나 유효기간이 만료되었습니다
+          🔒 [{selectedSector}] {$t.mapLockedTitleSuffix}
         </h3>
         <p class="text-xs text-slate-400 max-w-xl mx-auto leading-relaxed">
-          이 구역에는 <strong>{sectorPlanets.length}개</strong>의 미확인 행성이 존재합니다. 행성 상점에서 정가(<strong>{(sectorMapSpec?.base_price || 1000).toLocaleString()} CR</strong>)로 구매하거나, 지금 우주항해 중 급하게 지도가 필요하다면 <strong class="text-rose-400">10배 할증 가격({emergencyPrice.toLocaleString()} CR)</strong>으로 최대 3회까지 긴급 위성 성도를 구매할 수 있습니다.
+          {$t.mapLockedDesc1} <strong>{sectorPlanets.length}</strong> {$t.mapLockedDesc2}
         </p>
       </div>
 
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <button
+          type="button"
           on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
           class="px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold shadow"
         >
-          🛒 행성 상점에서 정가 구매 ({(sectorMapSpec?.base_price || 1000).toLocaleString()} CR)
+          {$t.mapBuyAtShopBtn} ({(sectorMapSpec?.base_price || 1000).toLocaleString()} CR)
         </button>
 
         <button
+          type="button"
           on:click={() => buyEmergencyMapForSector(selectedSector)}
           disabled={emergencyRemaining <= 0}
           class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold shadow-lg border border-rose-400"
         >
-          🚨 우주항해 긴급 지도 구매 — 10배 가격 ({emergencyPrice.toLocaleString()} CR · 잔여 {emergencyRemaining}/3회)
+          {$t.mapEmergencyBuyBtn} ({emergencyPrice.toLocaleString()} CR · {emergencyRemaining}/3)
         </button>
       </div>
     </div>
   {/if}
+
+  <div class="flex justify-end pt-2 border-t border-slate-800">
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-600"
+    >
+      {$t.closeBtn}
+    </button>
+  </div>
 </div>

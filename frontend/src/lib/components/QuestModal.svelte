@@ -8,6 +8,10 @@
   let statusMsg = '';
   let errorMsg = '';
 
+  function closeModal() {
+    gameStore.update((s) => ({ ...s, activeModal: null }));
+  }
+
   onMount(() => {
     if (state.user?.id) {
       fetchUserQuests(state.user.id);
@@ -57,24 +61,26 @@
 <div class="p-6 bg-slate-900/95 border border-amber-500/50 rounded-2xl max-w-4xl w-full shadow-2xl space-y-4">
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
     <div>
-      <h2 class="text-xl font-bold text-amber-300">📜 자산 레벨별 성간 퀘스트 (Level-Tiered Quests)</h2>
+      <h2 class="text-xl font-bold text-amber-300">{$t.questsModalTitle}</h2>
       <p class="text-xs text-slate-400 mt-0.5">
-        현재 자산 규모에 따른 파일럿 레벨(현재 <strong class="text-cyan-300">Lv.{state.user?.pilot_level || 1}</strong> · 총자산 {(state.user?.net_worth || 0).toLocaleString()} CR)에 맞춰 퀘스트를 수행하고 크레딧과 초공간 워프 셀을 획득하세요.
+        {$t.questsModalSubtitle} (Lv.{state.user?.pilot_level || 1} · {(state.user?.net_worth || 0).toLocaleString()} CR)
       </p>
     </div>
 
     <div class="flex items-center gap-2">
       {#if state.user?.isSuperAdmin}
         <button
+          type="button"
           on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'ADMIN' }))}
           class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
         >
-          👑 관리자 퀘스트 에디터 열기
+          {$t.questsOpenAdminBtn}
         </button>
       {/if}
       <button
-        on:click={() => gameStore.update((s) => ({ ...s, activeModal: null }))}
-        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+        type="button"
+        on:click={closeModal}
+        class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold shadow"
       >
         {$t.closeBtn}
       </button>
@@ -92,7 +98,7 @@
     </div>
   {/if}
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[58vh] overflow-y-auto pr-1">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[54vh] overflow-y-auto pr-1">
     {#each state.quests as q (q.id)}
       {@const unlocked = (state.user?.pilot_level || 1) >= q.min_level}
       {@const pct = Math.min(100, Math.round(((q.progress || 0) / Math.max(1, q.target_amount)) * 100))}
@@ -111,12 +117,12 @@
                 ? 'bg-amber-950 text-amber-300 border border-amber-500/50'
                 : 'bg-slate-800 text-slate-400'}"
             >
-              요구 레벨: Lv.{q.min_level}+ · {q.quest_type}
+              {$t.questsReqLevel}{q.min_level}+ · {q.quest_type}
             </span>
             <div class="text-xs font-bold text-emerald-400">
               +{q.reward_credits.toLocaleString()} CR
               {#if q.reward_warp_tickets > 0}
-                <span class="text-cyan-300"> & ⚡워프셀 +{q.reward_warp_tickets}</span>
+                <span class="text-cyan-300"> & ⚡{dimensionTicketLabel(q.reward_warp_tickets, $t.hudWarpCells)}</span>
               {/if}
             </div>
           </div>
@@ -127,7 +133,7 @@
           <!-- Progress Bar -->
           <div class="mt-3 space-y-1">
             <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">달성도: {q.progress || 0} / {q.target_amount}</span>
+              <span class="text-slate-400">{$t.questsProgressLabel}: {q.progress || 0} / {q.target_amount}</span>
               <span class="text-amber-300 font-bold">{pct}%</span>
             </div>
             <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
@@ -139,26 +145,43 @@
         <div class="mt-3 pt-2.5 border-t border-slate-800 flex justify-end">
           {#if q.claimed}
             <span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-bold">
-              ✅ 보상 수령 완료
+              {$t.questsClaimedBadge}
             </span>
           {:else if !unlocked}
             <span class="px-3 py-1 rounded-lg bg-rose-950/60 text-rose-300 text-xs font-bold">
-              🔒 자산 레벨 Lv.{q.min_level} 필요
+              {$t.questsLockedBadgePrefix}{q.min_level}
             </span>
           {:else if q.completed}
             <button
+              type="button"
               on:click={() => claimQuest(q.id)}
               class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow animate-pulse"
             >
-              🎁 퀘스트 보상 수령
+              {$t.questsClaimBtn}
             </button>
           {:else}
             <span class="px-3 py-1 rounded-lg bg-slate-800 text-cyan-300 text-xs">
-              진행 중 ({q.progress || 0}/{q.target_amount})
+              {$t.questsInProgressBadge} ({q.progress || 0}/{q.target_amount})
             </span>
           {/if}
         </div>
       </div>
     {/each}
   </div>
+
+  <div class="flex justify-end pt-2 border-t border-slate-800">
+    <button
+      type="button"
+      on:click={closeModal}
+      class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-600"
+    >
+      {$t.closeBtn}
+    </button>
+  </div>
 </div>
+
+<script context="module" lang="ts">
+  function dimensionTicketLabel(count: number, label: string) {
+    return `${label} +${count}`;
+  }
+</script>

@@ -48,3 +48,15 @@ export const t = derived(currentLang, ($lang) => {
   const entry = localeRegistry.get($lang) || localeRegistry.get('en')!;
   return entry.dict;
 });
+
+/**
+ * Helper to return localized entity name (Planet, Resource, Item, Pirate)
+ * based on the current active language.
+ */
+export function localName(entity: any, lang: LocaleCode): string {
+  if (!entity) return '';
+  if (lang === 'ko') {
+    return entity.name_ko || entity.name_en || entity.name || '';
+  }
+  return entity.name_en || entity.name || entity.name_ko || '';
+}

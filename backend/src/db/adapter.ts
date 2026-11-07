@@ -328,6 +328,7 @@ export async function getDb(): Promise<DatabaseAdapter> {
   const { dirname } = await import('node:path');
   mkdirSync(dirname(ENV.SQLITE_DB_PATH), { recursive: true });
   const sqlite = new Database(ENV.SQLITE_DB_PATH, { create: true });
+  sqlite.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
 
   dbInstance = {
     clientType: 'sqlite',

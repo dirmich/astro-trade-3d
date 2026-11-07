@@ -83,14 +83,14 @@
 
     <!-- Authentication Tabs: Google SSO / Email Login / New Pilot Register -->
     <div class="p-5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-4">
-      <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div class="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         <button
           on:click={() => (authTab = 'GOOGLE')}
           class="px-4 py-1.5 rounded-xl text-xs font-bold transition {authTab === 'GOOGLE'
             ? 'bg-white text-slate-950'
             : 'bg-slate-800 text-slate-300'}"
         >
-          🌐 Google SSO
+          {$t.authTabGoogle}
         </button>
         <button
           on:click={() => (authTab = 'LOGIN')}
@@ -98,7 +98,7 @@
             ? 'bg-cyan-600 text-white'
             : 'bg-slate-800 text-slate-300'}"
         >
-          🔑 ID / Password
+          {$t.authTabLogin}
         </button>
         <button
           on:click={() => (authTab = 'REGISTER')}
@@ -106,7 +106,7 @@
             ? 'bg-emerald-600 text-white'
             : 'bg-slate-800 text-slate-300'}"
         >
-          ✨ New Pilot Sign Up
+          {$t.authTabRegister}
         </button>
       </div>
 
@@ -132,23 +132,23 @@
               class="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg transition"
             >
               <span class="text-base">🌐</span>
-              <span>{$t.googleLoginBtn} (Pilot Account)</span>
+              <span>{$t.googleLoginBtn} ({$t.pilotAccountSuffix})</span>
             </button>
           </div>
 
           {#if showGooglePicker}
             <div class="p-4 rounded-xl bg-slate-900 border border-cyan-500/40 space-y-2.5">
-              <div class="text-xs font-bold text-cyan-300">Google SSO Account Selector</div>
+              <div class="text-xs font-bold text-cyan-300">{$t.googleAccountSelector}</div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input
                   bind:value={customGoogleEmail}
                   class="px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                  placeholder="Google Email (e.g. pilot@gmail.com)"
+                  placeholder={$t.emailPlaceholder}
                 />
                 <input
                   bind:value={customGoogleName}
                   class="px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                  placeholder="Pilot Display Name"
+                  placeholder={$t.callsignPlaceholder}
                 />
               </div>
               <button
@@ -159,7 +159,7 @@
                   })}
                 class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
               >
-                Continue with Google SSO ({customGoogleEmail})
+                {$t.continueWithGoogle} ({customGoogleEmail})
               </button>
             </div>
           {/if}
@@ -169,13 +169,13 @@
           <input
             bind:value={loginEmail}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Email"
+            placeholder={$t.emailPlaceholder}
           />
           <input
             type="password"
             bind:value={loginPassword}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Password"
+            placeholder={$t.passwordPlaceholder}
           />
           <button
             on:click={() => dispatch('passwordLogin', { email: loginEmail, password: loginPassword })}
@@ -189,23 +189,23 @@
           <input
             bind:value={regEmail}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Pilot Email"
+            placeholder={$t.emailPlaceholder}
           />
           <input
             type="password"
             bind:value={regPassword}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Password"
+            placeholder={$t.passwordPlaceholder}
           />
           <input
             bind:value={regPilotName}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Callsign (e.g. Maverick)"
+            placeholder={$t.callsignPlaceholder}
           />
           <input
             bind:value={regShipName}
             class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-            placeholder="Spaceship Name"
+            placeholder={$t.shipNamePlaceholder}
           />
           <button
             on:click={() =>
@@ -217,7 +217,7 @@
               })}
             class="md:col-span-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
           >
-            ✨ Register New Pilot (Starting Credits: 3,500 CR)
+            {$t.registerNewPilotBtn}
           </button>
         </div>
       {/if}

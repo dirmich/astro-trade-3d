@@ -219,6 +219,8 @@ export async function seedDatabaseIfNeeded() {
   const now = new Date().toISOString();
   const existingPlanets = await db.query<{ id: string }>('SELECT id FROM planets LIMIT 1');
 
+  await db.exec('BEGIN TRANSACTION');
+  try {
   if (existingPlanets.length === 0) {
 
   // 1. Seed 12 Resources
@@ -354,5 +356,10 @@ export async function seedDatabaseIfNeeded() {
         [mp.id, mp.email, mp.name, mp.credits, mp.credits + 8000, mp.level, mp.planet, mp.ship, mp.tier, mp.x, mp.y, mp.z, Date.now(), now]
       );
     }
+  }
+  await db.exec('COMMIT');
+  } catch (err) {
+    await db.exec('ROLLBACK');
+    throw err;
   }
 }

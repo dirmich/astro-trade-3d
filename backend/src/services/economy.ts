@@ -41,21 +41,28 @@ export async function runMarketTick(): Promise<void> {
     JOIN planets p ON p.id = pm.planet_id
   `);
 
-  for (const m of markets) {
-    // Natural drift toward equilibrium + production
-    const drift = m.production_rate > 20 ? Math.floor(Math.random() * 18) + 4 : Math.floor(Math.random() * 11) - 5;
-    const newStock = Math.max(15, Math.min(3500, m.stock + drift));
-    const { buyPrice, sellPrice } = calculateDynamicPrices(
-      m.base_price,
-      newStock,
-      m.base_stock,
-      m.specialty_multiplier,
-      m.tax_rate
-    );
+  await db.exec('BEGIN TRANSACTION');
+  try {
+    for (const m of markets) {
+      // Natural drift toward equilibrium + production
+      const drift = m.production_rate > 20 ? Math.floor(Math.random() * 18) + 4 : Math.floor(Math.random() * 11) - 5;
+      const newStock = Math.max(15, Math.min(3500, m.stock + drift));
+      const { buyPrice, sellPrice } = calculateDynamicPrices(
+        m.base_price,
+        newStock,
+        m.base_stock,
+        m.specialty_multiplier,
+        m.tax_rate
+      );
 
-    await db.run(
-      `UPDATE planet_markets SET stock = ?, buy_price = ?, sell_price = ? WHERE planet_id = ? AND resource_id = ?`,
-      [newStock, buyPrice, sellPrice, m.planet_id, m.resource_id]
-    );
+      await db.run(
+        `UPDATE planet_markets SET stock = ?, buy_price = ?, sell_price = ? WHERE planet_id = ? AND resource_id = ?`,
+        [newStock, buyPrice, sellPrice, m.planet_id, m.resource_id]
+      );
+    }
+    await db.exec('COMMIT');
+  } catch (err) {
+    await db.exec('ROLLBACK');
+    throw err;
   }
 }
