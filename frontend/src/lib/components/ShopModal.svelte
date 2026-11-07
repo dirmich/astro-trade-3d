@@ -47,6 +47,29 @@
     return true;
   });
 
+  function getMapPreviewPlanets(targetSector?: string) {
+    if (!targetSector || targetSector === 'ALL_GALAXY') {
+      return state.planets.slice(0, 12);
+    }
+    return state.planets.filter((p) => p.sector === targetSector);
+  }
+
+  function toMiniMapXY(p: any, list: any[]): { x: number; y: number } {
+    if (!list || list.length <= 1) return { x: 110, y: 32 };
+    const xs = list.map((it) => it.x);
+    const zs = list.map((it) => it.z);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minZ = Math.min(...zs);
+    const maxZ = Math.max(...zs);
+    const spanX = Math.max(50, maxX - minX);
+    const spanZ = Math.max(50, maxZ - minZ);
+    return {
+      x: Number((26 + ((p.x - minX) / spanX) * 168).toFixed(1)),
+      y: Number((14 + ((p.z - minZ) / spanZ) * 38).toFixed(1)),
+    };
+  }
+
   async function buyItem(item: any) {
     statusMsg = '';
     errorMsg = '';
@@ -292,6 +315,37 @@
             </div>
 
             {#if item.category === 'MAP'}
+              {@const previewPlanets = getMapPreviewPlanets(item.target_sector)}
+              <div class="mt-2 p-2 rounded-xl bg-slate-950 border border-cyan-500/30">
+                <svg viewBox="0 0 220 66" class="w-full h-14 rounded-lg bg-slate-950">
+                  <line x1="0" y1="33" x2="220" y2="33" stroke="#0f172a" />
+                  <line x1="110" y1="0" x2="110" y2="66" stroke="#0f172a" />
+                  {#each previewPlanets as pp, idx (pp.id)}
+                    {#if idx < previewPlanets.length - 1}
+                      {@const p1 = toMiniMapXY(pp, previewPlanets)}
+                      {@const p2 = toMiniMapXY(previewPlanets[idx + 1], previewPlanets)}
+                      <line
+                        x1={p1.x}
+                        y1={p1.y}
+                        x2={p2.x}
+                        y2={p2.y}
+                        stroke="#38bdf8"
+                        stroke-width="1.2"
+                        stroke-dasharray="3 2"
+                        opacity="0.7"
+                      />
+                    {/if}
+                  {/each}
+                  {#each previewPlanets as pp (pp.id)}
+                    {@const pos = toMiniMapXY(pp, previewPlanets)}
+                    <circle cx={pos.x} cy={pos.y} r="3.5" fill={pp.color_primary} stroke="#ffffff" stroke-width="0.7" />
+                    <text x={pos.x} y={pos.y + 10} text-anchor="middle" fill="#cbd5e1" font-size="6.5" font-weight="bold">
+                      {localName(pp, $currentLang)}
+                    </text>
+                  {/each}
+                </svg>
+              </div>
+
               <div class="mt-2 flex items-center justify-between text-[11px] px-2.5 py-1 rounded bg-slate-800/80">
                 {#if mapStatus.active}
                   <span class="text-emerald-400 font-bold">{$t.mapActiveStatus}</span>
@@ -358,6 +412,14 @@
                 class="mt-3 w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
               >
                 {$t.useConsumableBtn}
+              </button>
+            {:else if spec.category === 'MAP'}
+              <button
+                type="button"
+                on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
+                class="mt-3 w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
+              >
+                {$t.btnStarMap}
               </button>
             {:else}
               <div class="mt-3 text-center py-1 rounded-lg bg-slate-800/80 text-[11px] text-cyan-300">

@@ -535,25 +535,18 @@ export function getPlanetShopAssortment(planet: any): PlanetShopEntry[] {
   const results: PlanetShopEntry[] = [];
 
   // 1. Maps sold on this planet:
-  // Always sells its own sector map + 2 deterministic neighboring sector maps.
-  // Capital planets (Olympus Prime, Hermes Nexus, Athena Citadel) or Danger >= 4 also sell rare/Master maps!
+  // Include all sector maps so players can purchase any sector chart at planetary shops
+  // (the planet's own sector chart gets a 15% local specialty discount).
   const mapItems = SHOP_ITEMS.filter((it) => it.category === 'MAP');
-  const ownSectorMap = mapItems.find((m) => m.target_sector === planet.sector) || mapItems[0];
-
-  const nonMasterMaps = mapItems.filter((m) => m.id !== ownSectorMap.id && m.target_sector !== 'ALL_GALAXY');
-  const neighborMap1 = nonMasterMaps[pHash % nonMasterMaps.length];
-  const neighborMap2 = nonMasterMaps[(pHash + 3) % nonMasterMaps.length];
-
   const selectedMaps = new Map<string, ShopItemSpec>();
-  selectedMaps.set(ownSectorMap.id, ownSectorMap);
-  if (neighborMap1) selectedMaps.set(neighborMap1.id, neighborMap1);
-  if (neighborMap2) selectedMaps.set(neighborMap2.id, neighborMap2);
-
-  if (planet.danger_level >= 4 || ['Olympus Prime', 'Hermes Nexus', 'Athena Citadel', 'Chronos Rift'].includes(planet.name)) {
-    const abyssMap = mapItems.find((m) => m.id === 'map_abyss_omega');
-    const masterMap = mapItems.find((m) => m.id === 'map_all_galaxy');
-    if (abyssMap) selectedMaps.set(abyssMap.id, abyssMap);
-    if (masterMap) selectedMaps.set(masterMap.id, masterMap);
+  for (const m of mapItems) {
+    if (m.target_sector === 'ALL_GALAXY') {
+      if (planet.danger_level >= 3 || ['Olympus Prime', 'Hermes Nexus', 'Athena Citadel', 'Chronos Rift'].includes(planet.name)) {
+        selectedMaps.set(m.id, m);
+      }
+    } else {
+      selectedMaps.set(m.id, m);
+    }
   }
 
   for (const m of selectedMaps.values()) {

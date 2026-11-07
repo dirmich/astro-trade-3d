@@ -41,8 +41,8 @@ export function getSupportedLocales(): LocaleInfo[] {
   return Array.from(localeRegistry.values());
 }
 
-// Default language is English ('en')
-export const currentLang = writable<LocaleCode>('en');
+// Default language is Korean ('ko')
+export const currentLang = writable<LocaleCode>('ko');
 
 export const t = derived(currentLang, ($lang) => {
   const entry = localeRegistry.get($lang) || localeRegistry.get('en')!;

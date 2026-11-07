@@ -1,7 +1,7 @@
 /**
  * Svelte Reactive Store & Hono Backend API Client (`frontend/src/lib/stores/gameStore.ts`)
  */
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { currentLang } from '../i18n';
 import { soundEngine } from '../audio/SoundEngine';
 
@@ -213,15 +213,38 @@ export async function saveUserSettingsToDb(userId: string, partialSettings: Reco
   }
 }
 
+const SECTOR_MAP_ITEM_IDS: Record<string, string> = {
+  'Core-Alpha': 'map_core_alpha',
+  'Inner-Sol': 'map_inner_sol',
+  'Jovian-Belt': 'map_jovian_belt',
+  'Saturn-Ring': 'map_saturn_ring',
+  'Uranus-Rim': 'map_uranus_rim',
+  'Neptune-Deep': 'map_neptune_deep',
+  'Kuiper-Edge': 'map_kuiper_edge',
+  'Mythos-Core': 'map_mythos_core',
+  'Abyss-Omega': 'map_abyss_omega',
+};
+
 export function getSectorMapStatus(
   unlockedMaps: Record<string, number> | undefined,
   sector: string,
   nowMs: number = Date.now()
 ): { active: boolean; remainingSec: number } {
-  if (!unlockedMaps || !sector) return { active: false, remainingSec: 0 };
-  const expiry = Math.max(unlockedMaps[sector] || 0, unlockedMaps['ALL_GALAXY'] || 0);
+  if (!sector) return { active: false, remainingSec: 0 };
+  const expiry = Math.max(unlockedMaps?.[sector] || 0, unlockedMaps?.['ALL_GALAXY'] || 0);
   if (expiry > nowMs) {
     return { active: true, remainingSec: Math.ceil((expiry - nowMs) / 1000) };
+  }
+  const inv = get(gameStore).user?.inventory || {};
+  const mapItemId = SECTOR_MAP_ITEM_IDS[sector];
+  if (
+    (mapItemId && Number(inv[mapItemId] || 0) > 0) ||
+    Number(inv['map_all_galaxy'] || 0) > 0 ||
+    Number(inv['item_chrono_relic'] || 0) > 0 ||
+    Number(inv['loot_leviathan_crown'] || 0) > 0 ||
+    sector === 'Core-Alpha'
+  ) {
+    return { active: true, remainingSec: 3600 };
   }
   return { active: false, remainingSec: 0 };
 }

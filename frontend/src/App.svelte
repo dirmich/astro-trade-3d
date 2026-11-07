@@ -89,7 +89,18 @@
   );
 
   function toRadarCoord(val: number): number {
-    return Math.max(10, Math.min(190, 100 + (val / 1450) * 88));
+    return Math.max(10, Math.min(190, 100 + (val / 980) * 86));
+  }
+
+  function toRadarXY(x: number, z: number): { x: number; y: number } {
+    const dist = Math.sqrt(x * x + z * z);
+    if (dist < 1) return { x: 100, y: 100 };
+    const norm = 0.22 + 0.78 * Math.min(1, Math.pow(dist / 920, 0.65));
+    const angle = Math.atan2(z, x);
+    return {
+      x: Number((100 + Math.cos(angle) * norm * 86).toFixed(1)),
+      y: Number((100 + Math.sin(angle) * norm * 86).toFixed(1)),
+    };
   }
 
   function handleDestinationChange(planetId: string) {
@@ -182,9 +193,7 @@
   });
 
   function applyLoggedInUser(user: any) {
-    if (user.settings?.lang) {
-      currentLang.set(user.settings.lang);
-    }
+    saveUserSettingsToDb(user.id, { lang: $currentLang });
     bgmEnabled = user.settings?.bgmEnabled ?? true;
     soundEngine.applySettings(user.settings || {});
     soundEngine.startRandomSpaceBgm();
@@ -381,6 +390,33 @@
       addGameLog(data.message);
       await fetchUniverse();
       await fetchUserQuests(state.user.id);
+    }
+  }
+
+  async function handleDirectMapBuy(sector: string) {
+    if (!state.user || !currentPlanet) return;
+    const mapSpec =
+      state.shopCatalog.find((it) => it.category === 'MAP' && it.target_sector === sector) ||
+      state.shopCatalog.find((it) => it.id === 'map_core_alpha');
+    if (!mapSpec) return;
+
+    const res = await fetch(`${API_BASE}/game/shop/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: state.user.id,
+        planetId: currentPlanet.id,
+        itemId: mapSpec.id,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      addGameLog(`❌ ${data.error}`);
+      return;
+    }
+    if (data.user) {
+      gameStore.update((s) => ({ ...s, user: data.user }));
+      addGameLog(data.message);
     }
   }
 
@@ -823,7 +859,7 @@
       </div>
     </div>
 
-    <!-- 2. Live 2D Visual Space Navigation Map Radar (Displayed when player owns a Space Map) -->
+    <!-- 2. Live 2D Visual Space Navigation Map Radar (Always Displayed with Destination & Ship Heading) -->
     <div class="p-2.5 rounded-2xl bg-slate-950/95 border border-cyan-500/40 space-y-2">
       <div class="flex items-center justify-between">
         <span class="text-xs font-bold text-cyan-300">{$t.spaceMapHudTitle}</span>
@@ -836,114 +872,116 @@
         </button>
       </div>
 
-      {#if hasAnyUnlockedMap}
-        <div class="relative flex flex-col items-center">
-          <svg
-            viewBox="0 0 200 200"
-            class="w-full max-w-[220px] aspect-square rounded-xl bg-slate-950 border border-slate-800 shadow-inner"
-          >
-            <!-- Sector Radar Grid Circles -->
-            <circle cx="100" cy="100" r="30" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
-            <circle cx="100" cy="100" r="60" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
-            <circle cx="100" cy="100" r="88" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
-            <line x1="100" y1="4" x2="100" y2="196" stroke="#0f172a" />
-            <line x1="4" y1="100" x2="196" y2="100" stroke="#0f172a" />
+      <div class="relative flex flex-col items-center">
+        <svg
+          viewBox="0 0 200 200"
+          class="w-full max-w-[220px] aspect-square rounded-xl bg-slate-950 border border-slate-800 shadow-inner"
+        >
+          <!-- Sector Radar Grid Circles -->
+          <circle cx="100" cy="100" r="30" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+          <circle cx="100" cy="100" r="60" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+          <line x1="100" y1="4" x2="100" y2="196" stroke="#0f172a" />
+          <line x1="4" y1="100" x2="196" y2="100" stroke="#0f172a" />
 
-            <!-- Central Sun -->
-            <circle cx="100" cy="100" r="4" fill="#fbbf24" />
+          <!-- Central Sun -->
+          <circle cx="100" cy="100" r="4" fill="#fbbf24" />
 
-            <!-- Dashed Navigation Guide Line from Player Ship to Destination Planet -->
-            {#if targetPlanet}
-              {@const sx = toRadarCoord(state.flightTelemetry?.x || 0)}
-              {@const sy = toRadarCoord(state.flightTelemetry?.z || 0)}
-              {@const tx = toRadarCoord(targetPlanet.x)}
-              {@const ty = toRadarCoord(targetPlanet.z)}
-              <line
-                x1={sx}
-                y1={sy}
-                x2={tx}
-                y2={ty}
-                stroke="#22d3ee"
-                stroke-width="1.6"
-                stroke-dasharray="4 2"
-              />
-            {/if}
+          <!-- Dashed Navigation Guide Line from Player Ship to Destination Planet -->
+          {#if targetPlanet}
+            {@const sp = toRadarXY(state.flightTelemetry?.x || 0, state.flightTelemetry?.z || 0)}
+            {@const tp = toRadarXY(targetPlanet.x, targetPlanet.z)}
+            <line
+              x1={sp.x}
+              y1={sp.y}
+              x2={tp.x}
+              y2={tp.y}
+              stroke="#22d3ee"
+              stroke-width="1.6"
+              stroke-dasharray="4 2"
+            />
+          {/if}
 
-            <!-- Planets on Space Map (Click to select destination) -->
-            {#each state.planets as mp (mp.id)}
-              {@const secActive =
-                getSectorMapStatus(state.user?.unlockedMaps, mp.sector, nowMs).active ||
-                Boolean(state.user?.inventory?.['map_all_galaxy'])}
-              {#if secActive || mp.id === currentPlanet?.id || mp.id === targetPlanet?.id}
-                {@const px = toRadarCoord(mp.x)}
-                {@const py = toRadarCoord(mp.z)}
-                {@const isDest = mp.id === targetPlanet?.id}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <g
-                  class="cursor-pointer"
-                  on:click={() => handleDestinationChange(mp.id)}
-                >
-                  {#if isDest}
-                    <circle
-                      cx={px}
-                      cy={py}
-                      r="8.5"
-                      fill="none"
-                      stroke="#f59e0b"
-                      stroke-width="1.4"
-                      stroke-dasharray="2 2"
-                    />
-                  {/if}
-                  <circle
-                    cx={px}
-                    cy={py}
-                    r={isDest ? 4.5 : 3.2}
-                    fill={mp.color_primary}
-                    stroke="#ffffff"
-                    stroke-width="0.7"
-                  />
-                  <text
-                    x={px + 5}
-                    y={py + 2.5}
-                    fill={isDest ? '#fde68a' : '#94a3b8'}
-                    font-size="6.8"
-                    font-weight="bold"
-                  >
-                    {isDest ? '🎯' : ''}{localName(mp, $currentLang)}
-                  </text>
-                </g>
+          <!-- Planets on Space Map (Click to select destination) -->
+          {#each state.planets as mp (mp.id)}
+            {@const secActive =
+              getSectorMapStatus(state.user?.unlockedMaps, mp.sector, nowMs).active ||
+              Boolean(state.user?.inventory?.['map_all_galaxy'])}
+            {@const pt = toRadarXY(mp.x, mp.z)}
+            {@const px = pt.x}
+            {@const py = pt.y}
+            {@const isDest = mp.id === targetPlanet?.id}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <g
+              class="cursor-pointer"
+              on:click={() => handleDestinationChange(mp.id)}
+            >
+              {#if isDest}
+                <circle
+                  cx={px}
+                  cy={py}
+                  r="8.5"
+                  fill="none"
+                  stroke="#f59e0b"
+                  stroke-width="1.4"
+                  stroke-dasharray="2 2"
+                />
               {/if}
-            {/each}
-
-            <!-- Player Spaceship Marker & Heading Vector -->
-            {#if state.flightTelemetry}
-              {@const sx = toRadarCoord(state.flightTelemetry.x)}
-              {@const sy = toRadarCoord(state.flightTelemetry.z)}
-              <g transform="translate({sx}, {sy})">
-                <circle r="4" fill="#10b981" stroke="#ffffff" stroke-width="1.1" />
-                <text x="-10" y="-6" fill="#6ee7b7" font-size="6.8" font-weight="bold">
-                  {$t.mapShipLabel}
+              {#if secActive || mp.id === currentPlanet?.id || isDest}
+                <circle
+                  cx={px}
+                  cy={py}
+                  r={isDest ? 4.5 : 3.2}
+                  fill={mp.color_primary}
+                  stroke="#ffffff"
+                  stroke-width="0.7"
+                />
+                <text
+                  x={px + 5}
+                  y={py + 2.5}
+                  fill={isDest ? '#fde68a' : '#94a3b8'}
+                  font-size="6.8"
+                  font-weight="bold"
+                >
+                  {isDest ? '🎯' : ''}{localName(mp, $currentLang)}
                 </text>
-              </g>
-            {/if}
-          </svg>
-          <div class="text-[10px] text-cyan-300 text-center mt-1 font-medium">
-            {$t.mapSteerHint}
-          </div>
+              {:else}
+                <circle cx={px} cy={py} r="2.2" fill="#475569" />
+              {/if}
+            </g>
+          {/each}
+
+          <!-- Player Spaceship Marker & Heading Vector -->
+          {#if state.flightTelemetry}
+            {@const sp = toRadarXY(state.flightTelemetry.x, state.flightTelemetry.z)}
+            {@const sx = sp.x}
+            {@const sy = sp.y}
+            {@const hRad = ((state.flightTelemetry.headingDeg || 0) * Math.PI) / 180}
+            {@const hx = sx + Math.sin(hRad) * 9}
+            {@const hy = sy + Math.cos(hRad) * 9}
+            <line x1={sx} y1={sy} x2={hx} y2={hy} stroke="#10b981" stroke-width="1.8" />
+            <g transform="translate({sx}, {sy})">
+              <circle r="4" fill="#10b981" stroke="#ffffff" stroke-width="1.1" />
+              <text x="-10" y="-6" fill="#6ee7b7" font-size="6.8" font-weight="bold">
+                {$t.mapShipLabel}
+              </text>
+            </g>
+          {/if}
+        </svg>
+        <div class="text-[10px] text-cyan-300 text-center mt-1 font-medium">
+          {$t.mapSteerHint}
         </div>
-      {:else}
-        <div class="p-3 rounded-xl bg-rose-950/60 border border-dashed border-rose-500/50 text-center space-y-1.5">
-          <div class="text-xs font-bold text-rose-300">{$t.mapNotOwnedTitle}</div>
-          <p class="text-[10px] text-slate-300 leading-relaxed">{$t.mapNotOwnedDesc}</p>
-          <button
-            type="button"
-            on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
-            class="w-full py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[11px] font-bold"
-          >
-            {$t.buyMapNowBtn} ({(hudSectorMapSpec?.base_price || 800).toLocaleString()} CR)
-          </button>
-        </div>
+      </div>
+
+      {#if !hudSectorMapStatus.active}
+        <button
+          type="button"
+          on:click={() => handleDirectMapBuy(activeSectorForHud)}
+          class="w-full py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[11px] font-bold shadow"
+        >
+          {$t.buyMapNowBtn} [{activeSectorForHud}] ({(hudSectorMapSpec?.base_price || 800).toLocaleString()} CR)
+        </button>
       {/if}
     </div>
 
@@ -967,7 +1005,11 @@
             {@const lvStyle = getItemLevelStyle(spec.level)}
             <button
               type="button"
-              on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
+              on:click={() =>
+                gameStore.update((s) => ({
+                  ...s,
+                  activeModal: spec.category === 'MAP' ? 'MAP' : 'SHOP',
+                }))}
               title="{localName(spec, $currentLang)} ({lvStyle.label}) - {spec.effect_summary}"
               class="relative aspect-square rounded-xl overflow-hidden bg-slate-950 p-0.5 {lvStyle.borderClass}"
             >

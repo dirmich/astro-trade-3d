@@ -530,7 +530,18 @@ gameRoutes.post('/shop/buy', async (c) => {
   }
 
   const assortment = getPlanetShopAssortment(planet);
-  const shopEntry = assortment.find((it) => it.id === itemId);
+  let shopEntry = assortment.find((it) => it.id === itemId);
+  if (!shopEntry) {
+    const fallbackMap = SHOP_ITEMS.find((it) => it.id === itemId && it.category === 'MAP');
+    if (fallbackMap) {
+      shopEntry = {
+        ...fallbackMap,
+        planet_price: fallbackMap.base_price,
+        is_specialty: false,
+        discount_pct: 0,
+      };
+    }
+  }
   if (!shopEntry) {
     return c.json({ error: `이 행성 상점에서는 해당 품목(${itemId})을 판매하지 않습니다.` }, 400);
   }
