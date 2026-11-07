@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_item_warp_cell_3" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_item_warp_cell_3)" stroke="#fbbf24" stroke-width="2"/>
+  
+      <circle cx="44" cy="60" r="18" fill="#020617" stroke="#fbbf24" stroke-width="2"/>
+      <circle cx="84" cy="60" r="18" fill="#020617" stroke="#fbbf24" stroke-width="2"/>
+      <circle cx="64" cy="48" r="22" fill="#020617" stroke="#38bdf8" stroke-width="2.5"/>
+      <polygon points="64,30 76,48 64,66 52,48" fill="#fbbf24" stroke="#ffffff" stroke-width="1.8"/>
+      <circle cx="44" cy="60" r="6" fill="#38bdf8"/>
+      <circle cx="84" cy="60" r="6" fill="#38bdf8"/>
+    
+  <rect x="24" y="102" width="80" height="16" rx="8" fill="#020617" stroke="#fbbf24" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#38bdf8" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">WARP x3</text>
+</svg>

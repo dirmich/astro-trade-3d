@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_loot_pirate_scrap_core" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_loot_pirate_scrap_core)" stroke="#34d399" stroke-width="2.5"/>
+  
+      <polygon points="64,20 96,38 96,74 64,92 32,74 32,38" fill="#020617" stroke="#34d399" stroke-width="2.5"/>
+      <circle cx="64" cy="56" r="18" fill="#fb923c" fill-opacity="0.25" stroke="#fb923c" stroke-width="2"/>
+      <path d="M54 46 L74 66 M74 46 L54 66" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="64" cy="56" r="6" fill="#34d399"/>
+    
+  <rect x="20" y="102" width="88" height="16" rx="8" fill="#020617" stroke="#34d399" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#fb923c" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">PIRATE★2</text>
+</svg>

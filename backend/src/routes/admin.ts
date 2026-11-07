@@ -181,3 +181,95 @@ adminRoutes.post('/events', async (c) => {
 
   return c.json({ message: `은하 이벤트 '${title}' 발령 완료!`, eventId });
 });
+
+// 5. Admin Quest Editor — List All Quests
+adminRoutes.get('/quests', async (c) => {
+  const db = await getDb();
+  const quests = await db.query<any>('SELECT * FROM quests ORDER BY min_level ASC, created_at ASC');
+  return c.json({ quests });
+});
+
+// 6. Admin Quest Editor — Create or Update Quest
+adminRoutes.post('/quests', async (c) => {
+  const body = await c.req.json();
+  if (!(await verifySuperAdmin(body.adminEmail))) {
+    return c.json({ error: '슈퍼유저 권한이 필요합니다.' }, 403);
+  }
+
+  const db = await getDb();
+  const id = body.id || `quest_${Date.now()}`;
+  const now = new Date().toISOString();
+  const existing = await db.get<any>('SELECT id FROM quests WHERE id = ?', [id]);
+
+  if (existing) {
+    await db.run(
+      `UPDATE quests SET
+        min_level = ?, max_level = ?, quest_type = ?, target_id = ?, target_amount = ?,
+        reward_credits = ?, reward_warp_tickets = ?,
+        title_en = ?, title_ko = ?, title_ja = ?, title_zh = ?,
+        desc_en = ?, desc_ko = ?, desc_ja = ?, desc_zh = ?, active = ?
+       WHERE id = ?`,
+      [
+        Number(body.min_level || 1),
+        Number(body.max_level || 10),
+        body.quest_type || 'MINE',
+        body.target_id || 'ANY',
+        Number(body.target_amount || 10),
+        Number(body.reward_credits || 2000),
+        Number(body.reward_warp_tickets || 0),
+        body.title_en || body.title_ko || 'New Quest',
+        body.title_ko || body.title_en || '신규 퀘스트',
+        body.title_ja || body.title_en || '新規クエスト',
+        body.title_zh || body.title_en || '新任务',
+        body.desc_en || body.desc_ko || 'Complete objective.',
+        body.desc_ko || body.desc_en || '목표를 달성하세요.',
+        body.desc_ja || body.desc_en || '目標を達成してください。',
+        body.desc_zh || body.desc_en || '完成目标。',
+        body.active === undefined ? 1 : Number(body.active),
+        id,
+      ]
+    );
+    return c.json({ message: `퀘스트 '${body.title_ko || body.title_en}' 수정 완료!`, questId: id });
+  } else {
+    await db.run(
+      `INSERT INTO quests (
+        id, min_level, max_level, quest_type, target_id, target_amount,
+        reward_credits, reward_warp_tickets,
+        title_en, title_ko, title_ja, title_zh,
+        desc_en, desc_ko, desc_ja, desc_zh, active, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      [
+        id,
+        Number(body.min_level || 1),
+        Number(body.max_level || 10),
+        body.quest_type || 'MINE',
+        body.target_id || 'ANY',
+        Number(body.target_amount || 10),
+        Number(body.reward_credits || 2000),
+        Number(body.reward_warp_tickets || 0),
+        body.title_en || body.title_ko || 'New Quest',
+        body.title_ko || body.title_en || '신규 퀘스트',
+        body.title_ja || body.title_en || '新規クエスト',
+        body.title_zh || body.title_en || '新任务',
+        body.desc_en || body.desc_ko || 'Complete objective.',
+        body.desc_ko || body.desc_en || '목표를 달성하세요.',
+        body.desc_ja || body.desc_en || '目標を達成してください。',
+        body.desc_zh || body.desc_en || '完成目标。',
+        now,
+      ]
+    );
+    return c.json({ message: `신규 퀘스트 '${body.title_ko || body.title_en}' 등록 완료!`, questId: id });
+  }
+});
+
+// 7. Admin Quest Editor — Delete Quest
+adminRoutes.delete('/quests/:id', async (c) => {
+  const id = c.req.param('id');
+  const adminEmail = c.req.query('adminEmail');
+  if (!(await verifySuperAdmin(adminEmail))) {
+    return c.json({ error: '슈퍼유저 권한이 필요합니다.' }, 403);
+  }
+  const db = await getDb();
+  await db.run('DELETE FROM quests WHERE id = ?', [id]);
+  return c.json({ message: `퀘스트(${id})가 삭제되었습니다.` });
+});

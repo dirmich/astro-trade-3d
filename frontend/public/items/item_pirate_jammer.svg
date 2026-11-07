@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_item_pirate_jammer" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+    <filter id="glow_item_pirate_jammer" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_item_pirate_jammer)" stroke="#0ea5e9" stroke-width="2" stroke-opacity="0.6"/>
+  <g opacity="0.16" stroke="#0ea5e9" stroke-width="0.8">
+    <line x1="0" y1="32" x2="128" y2="32"/>
+    <line x1="0" y1="64" x2="128" y2="64"/>
+    <line x1="0" y1="96" x2="128" y2="96"/>
+    <line x1="32" y1="0" x2="32" y2="128"/>
+    <line x1="64" y1="0" x2="64" y2="128"/>
+    <line x1="96" y1="0" x2="96" y2="128"/>
+  </g>
+  <g filter="url(#glow_item_pirate_jammer)">
+    
+        <circle cx="64" cy="60" r="34" fill="#020617" stroke="#0ea5e9" stroke-width="2.5"/>
+        <circle cx="64" cy="60" r="22" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <circle cx="64" cy="60" r="10" fill="none" stroke="#0ea5e9" stroke-width="1.5"/>
+        <line x1="64" y1="60" x2="90" y2="38" stroke="#f43f5e" stroke-width="3"/>
+        <circle cx="64" cy="60" r="4" fill="#ffffff"/>
+        <circle cx="80" cy="46" r="4.5" fill="#f43f5e"/>
+      
+  </g>
+  <rect x="26" y="102" width="76" height="16" rx="8" fill="#020617" stroke="#0ea5e9" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#f43f5e" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">STEALTH</text>
+</svg>

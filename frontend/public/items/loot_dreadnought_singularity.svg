@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_loot_dreadnought_singularity" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_loot_dreadnought_singularity)" stroke="#fbbf24" stroke-width="2.5"/>
+  
+      <circle cx="64" cy="56" r="32" fill="#020617" stroke="#fbbf24" stroke-width="2.5"/>
+      <ellipse cx="64" cy="56" rx="28" ry="11" transform="rotate(35 64 56)" fill="none" stroke="#f43f5e" stroke-width="2.2"/>
+      <ellipse cx="64" cy="56" rx="28" ry="11" transform="rotate(-35 64 56)" fill="none" stroke="#fbbf24" stroke-width="2.2"/>
+      <circle cx="64" cy="56" r="11" fill="#f43f5e" stroke="#ffffff" stroke-width="2"/>
+    
+  <rect x="20" y="102" width="88" height="16" rx="8" fill="#020617" stroke="#fbbf24" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#f43f5e" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">PIRATE★5</text>
+</svg>

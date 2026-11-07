@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_item_ai_pilot_pro" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_item_ai_pilot_pro)" stroke="#38bdf8" stroke-width="2"/>
+  
+      <polygon points="64,18 98,36 98,74 64,92 30,74 30,36" fill="#020617" stroke="#38bdf8" stroke-width="2.5"/>
+      <circle cx="50" cy="52" r="7" fill="#facc15"/>
+      <circle cx="78" cy="52" r="7" fill="#facc15"/>
+      <path d="M46 68 H82" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="64" cy="34" r="5" fill="#38bdf8"/>
+    
+  <rect x="24" y="102" width="80" height="16" rx="8" fill="#020617" stroke="#38bdf8" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#facc15" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">AI-PRO x8</text>
+</svg>

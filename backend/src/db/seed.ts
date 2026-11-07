@@ -108,12 +108,118 @@ export const BIOME_COLORS: Record<string, { primary: string; secondary: string; 
   CRYSTAL: { primary: '#9333ea', secondary: '#f472b6', atmo: '#e879f9' },
 };
 
+export const INITIAL_PIRATES = [
+  { id: 'pirate_1', name: 'Corsair Scavenger MK-I', name_ko: '코르세어 약탈정찰기 (Lv.1)', sector: 'Core-Alpha', level: 1, hp: 90, max_hp: 90, attack: 10, reward_credits: 900, x: 112, y: 4, z: 22 },
+  { id: 'pirate_2', name: 'Rust-Belt Raider', name_ko: '소행성대 습격함 (Lv.2)', sector: 'Inner-Sol', level: 2, hp: 160, max_hp: 160, attack: 16, reward_credits: 1600, x: -135, y: -12, z: 185 },
+  { id: 'pirate_3', name: 'Jovian Marauder', name_ko: '목성 궤도 해적선 (Lv.3)', sector: 'Jovian-Belt', level: 3, hp: 260, max_hp: 260, attack: 24, reward_credits: 2800, x: -95, y: 15, z: 120 },
+  { id: 'pirate_4', name: 'Titan Black-Flag Frigate', name_ko: '타이탄 흑기 호위함 (Lv.4)', sector: 'Saturn-Ring', level: 4, hp: 420, max_hp: 420, attack: 35, reward_credits: 4500, x: 65, y: -18, z: 110 },
+  { id: 'pirate_5', name: 'Uranus Shadow Cruiser', name_ko: '천왕성 그림자 순양함 (Lv.5)', sector: 'Uranus-Rim', level: 5, hp: 650, max_hp: 650, attack: 48, reward_credits: 7200, x: 310, y: 24, z: -290 },
+  { id: 'pirate_6', name: 'Triton Abyssal Butcher', name_ko: '트리톤 심해 도살자 (Lv.6)', sector: 'Neptune-Deep', level: 6, hp: 980, max_hp: 980, attack: 65, reward_credits: 11500, x: 240, y: -10, z: -120 },
+  { id: 'pirate_7', name: 'Kuiper Void Reaver', name_ko: '카이퍼 공허 파괴함 (Lv.7)', sector: 'Kuiper-Edge', level: 7, hp: 1450, max_hp: 1450, attack: 85, reward_credits: 18000, x: 140, y: 28, z: 340 },
+  { id: 'pirate_8', name: 'Vulcan Hellfire Warship', name_ko: '불칸 헬파이어 전함 (Lv.8)', sector: 'Mythos-Core', level: 8, hp: 2100, max_hp: 2100, attack: 110, reward_credits: 29000, x: -520, y: 16, z: -480 },
+  { id: 'pirate_9', name: 'Hades Stygian Carrier', name_ko: '하데스 명계 모함 (Lv.9)', sector: 'Mythos-Core', level: 9, hp: 3200, max_hp: 3200, attack: 145, reward_credits: 45000, x: 580, y: -25, z: -510 },
+  { id: 'pirate_10', name: 'Chronos Leviathan Dreadnought', name_ko: '크로노스 해적 기함 레비아탄 (Lv.10)', sector: 'Abyss-Omega', level: 10, hp: 5000, max_hp: 5000, attack: 195, reward_credits: 80000, x: 640, y: 30, z: 620 },
+];
+
+export const INITIAL_QUESTS = [
+  {
+    id: 'quest_lv1_mine',
+    min_level: 1,
+    max_level: 10,
+    quest_type: 'MINE',
+    target_id: 'ANY',
+    target_amount: 10,
+    reward_credits: 1200,
+    reward_warp_tickets: 0,
+    title_en: '[Lv.1] Apprentice Asteroid Miner',
+    title_ko: '[Lv.1] 초보 소행성 광부 훈련',
+    title_ja: '[Lv.1] 見習い小惑星マイナー',
+    title_zh: '[Lv.1] 初级小行星采矿训练',
+    desc_en: 'Mine at least 10 units of orbital resources to fund your early voyages.',
+    desc_ko: '초기 항해 자금을 마련하기 위해 궤도 광물을 10단위 이상 채굴하세요.',
+    desc_ja: '初期航海資金を稼ぐため、軌道資源を10単位以上採掘してください。',
+    desc_zh: '采集至少10单位轨道矿物以筹集初期航行资金。',
+  },
+  {
+    id: 'quest_lv1_pirate',
+    min_level: 1,
+    max_level: 10,
+    quest_type: 'KILL_PIRATE',
+    target_id: 'ANY',
+    target_amount: 1,
+    reward_credits: 1800,
+    reward_warp_tickets: 1,
+    title_en: '[Lv.1] Clear the Core-Alpha Patrol Route',
+    title_ko: '[Lv.1] 코어-알파 항로 해적 정찰기 격퇴',
+    title_ja: '[Lv.1] コア・アルファ航路の海賊撃退',
+    title_zh: '[Lv.1] 击退核心阿尔法航线海盗',
+  desc_en: 'Defeat 1 Space Pirate (Solo or Co-op with another player) and earn a Warp Jump Cell.',
+    desc_ko: '우주해적 1척을 단독 또는 다른 유저와 협동 공격으로 격파하고 워프 셀 보상을 획득하세요.',
+    desc_ja: '宇宙海賊を1隻撃破（単独または他プレイヤーと協力）し、ワープセルを獲得しましょう。',
+    desc_zh: '单人或与其他玩家合作击败1艘太空海盗，赢取跃迁电池。',
+  },
+  {
+    id: 'quest_lv2_trade',
+    min_level: 2,
+    max_level: 10,
+    quest_type: 'TRADE',
+    target_id: 'ANY',
+    target_amount: 25,
+    reward_credits: 3200,
+    reward_warp_tickets: 1,
+    title_en: '[Lv.2] Interplanetary Merchant Guild Contract',
+    title_ko: '[Lv.2] 성간 상인 길드 교역 계약',
+    title_ja: '[Lv.2] 星間商人ギルド交易契約',
+    title_zh: '[Lv.2] 星际商人公会贸易契约',
+    desc_en: 'Complete 25 cumulative resource trades across planetary trading posts.',
+    desc_ko: '행성 교역소에서 누적 25단위 이상의 자원 매매를 달성하세요.',
+    desc_ja: '惑星の交易所で累計25単位以上の資源取引を達成してください。',
+    desc_zh: '在星球贸易站累计完成25单位以上的资源交易。',
+  },
+  {
+    id: 'quest_lv3_coop_pirate',
+    min_level: 3,
+    max_level: 10,
+    quest_type: 'KILL_PIRATE',
+    target_id: 'HIGH_LV',
+    target_amount: 3,
+    reward_credits: 6500,
+    reward_warp_tickets: 2,
+    title_en: '[Lv.3+] Fleet Bounty: Pirate Squadron Purge',
+    title_ko: '[Lv.3+] 함대 현상수배: 해적 편대 소탕 작전',
+    title_ja: '[Lv.3+] 艦隊賞金首：海賊編隊掃討作戦',
+    title_zh: '[Lv.3+] 舰队悬赏：肃清海盗编队',
+    desc_en: 'Team up with friends or online pilots to defeat 3 Space Pirates.',
+    desc_ko: '친구 또는 접속 중인 유저와 힘을 합쳐 우주해적 3척을 격파하세요.',
+    desc_ja: 'フレンドやオンラインパイロットと協力して宇宙海賊を3隻撃破してください。',
+    desc_zh: '与好友或在线飞行员联手击败3艘太空海盗。',
+  },
+  {
+    id: 'quest_lv5_tycoon',
+    min_level: 5,
+    max_level: 10,
+    quest_type: 'TRADE',
+    target_id: 'ANY',
+    target_amount: 100,
+    reward_credits: 15000,
+    reward_warp_tickets: 3,
+    title_en: '[Lv.5+] Galactic Trade Magnate',
+    title_ko: '[Lv.5+] 은하계 무역 거물 등극',
+    title_ja: '[Lv.5+] 銀河系貿易マグナート',
+    title_zh: '[Lv.5+] 银河贸易巨擘',
+    desc_en: 'Reach 100 total resource trade volume across the galaxy.',
+    desc_ko: '은하계 전역에서 누적 교역량 100단위를 달성하세요.',
+    desc_ja: '銀河系全域で累計取引量100単位を達成してください。',
+    desc_zh: '在全银河系累计达成100单位的资源贸易量。',
+  },
+];
+
 export async function seedDatabaseIfNeeded() {
   const db = await getDb();
-  const existingPlanets = await db.query<{ id: string }>('SELECT id FROM planets LIMIT 1');
-  if (existingPlanets.length > 0) return;
-
   const now = new Date().toISOString();
+  const existingPlanets = await db.query<{ id: string }>('SELECT id FROM planets LIMIT 1');
+
+  if (existingPlanets.length === 0) {
 
   // 1. Seed 12 Resources
   for (const r of INITIAL_RESOURCES) {
@@ -185,11 +291,68 @@ export async function seedDatabaseIfNeeded() {
   // 4. Seed Superuser (oldtv.cf@gmail.com)
   await db.run(
     `INSERT INTO users (
-      id, email, password_hash, pilot_name, role, credits, current_planet_id,
+      id, email, password_hash, pilot_name, role, credits, net_worth, pilot_level, current_planet_id,
       ship_name, ship_tier, hull, max_hull, fuel, max_fuel, cargo_capacity,
-      mining_laser_level, warp_drive_level, shield_level, cargo_json, crew_json,
+      mining_laser_level, warp_drive_level, shield_level, warp_tickets, ai_agent_uses, cargo_json, crew_json,
       reputation, total_trades, total_mined, created_at
-    ) VALUES (?, ?, ?, ?, 'SUPERADMIN', 500000, 'planet_1', 'Olympus Sovereign X-99', 3, 220, 220, 200, 200, 180, 3, 3, 3, '{}', '[]', 999, 0, 0, ?)`,
+    ) VALUES (?, ?, ?, ?, 'SUPERADMIN', 50000, 66000, 5, 'planet_1', 'Olympus Sovereign X-99', 3, 220, 220, 200, 200, 180, 3, 3, 3, 2, 3, '{}', '[]', 999, 0, 0, ?)`,
     ['user_superadmin', ENV.SUPERUSER_EMAIL, ENV.SUPERUSER_INITIAL_PASSWORD, 'Supreme Commander (Admin)', now]
   );
+  }
+
+  // 5. Ensure Space Pirates (Lv.1 ~ Lv.10) exist
+  const existingPirates = await db.query<{ id: string }>('SELECT id FROM space_pirates LIMIT 1');
+  if (existingPirates.length === 0) {
+    for (const pr of INITIAL_PIRATES) {
+      await db.run(
+        `INSERT INTO space_pirates (id, name, name_ko, sector, level, hp, max_hp, attack, reward_credits, x, y, z, active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [pr.id, pr.name, pr.name_ko, pr.sector, pr.level, pr.hp, pr.max_hp, pr.attack, pr.reward_credits, pr.x, pr.y, pr.z]
+      );
+    }
+  }
+
+  // 6. Ensure Level Quests exist
+  const existingQuests = await db.query<{ id: string }>('SELECT id FROM quests LIMIT 1');
+  if (existingQuests.length === 0) {
+    for (const q of INITIAL_QUESTS) {
+      await db.run(
+        `INSERT INTO quests (
+          id, min_level, max_level, quest_type, target_id, target_amount,
+          reward_credits, reward_warp_tickets,
+          title_en, title_ko, title_ja, title_zh,
+          desc_en, desc_ko, desc_ja, desc_zh, active, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        [
+          q.id, q.min_level, q.max_level, q.quest_type, q.target_id, q.target_amount,
+          q.reward_credits, q.reward_warp_tickets,
+          q.title_en, q.title_ko, q.title_ja, q.title_zh,
+          q.desc_en, q.desc_ko, q.desc_ja, q.desc_zh, now,
+        ]
+      );
+    }
+  }
+
+  // 7. Ensure Multiplayer Active Pilots exist so players can see other ships, collide, PvP, add friends, and Co-op Raid Pirates!
+  const mpPilots = [
+    { id: 'user_mp_nova', email: 'nova@vega.space', name: 'Capt. Nova (EN)', ship: 'Valkyrie Wing MK-II', tier: 2, credits: 18500, level: 3, planet: 'planet_1', x: 102, y: 3, z: 18 },
+    { id: 'user_mp_jihoon', email: 'jihoon@seoul.space', name: 'Pilot Jihoon (KR)', ship: 'Turtle Ship X-7', tier: 3, credits: 42000, level: 4, planet: 'planet_2', x: 75, y: -12, z: 92 },
+    { id: 'user_mp_kenji', email: 'kenji@tokyo.space', name: 'Cmdr. Kenji (JP)', ship: 'Yamato Interceptor', tier: 4, credits: 95000, level: 5, planet: 'planet_3', x: -85, y: 10, z: 138 },
+    { id: 'user_mp_lin', email: 'lin@tiangong.space', name: 'Admiral Lin (CN)', ship: 'Jade Dragon MK-IV', tier: 4, credits: 160000, level: 6, planet: 'planet_4', x: -150, y: 5, z: -110 },
+  ];
+  for (const mp of mpPilots) {
+    const exists = await db.get<any>('SELECT id FROM users WHERE id = ?', [mp.id]);
+    if (!exists) {
+      await db.run(
+        `INSERT INTO users (
+          id, email, password_hash, pilot_name, role, credits, net_worth, pilot_level, current_planet_id,
+          ship_name, ship_tier, hull, max_hull, fuel, max_fuel, cargo_capacity,
+          mining_laser_level, warp_drive_level, shield_level, warp_tickets, ai_agent_uses,
+          ship_x, ship_y, ship_z, last_seen_at, cargo_json, crew_json,
+          reputation, total_trades, total_mined, created_at
+        ) VALUES (?, ?, 'mp_pass', ?, 'PILOT', ?, ?, ?, ?, ?, ?, 160, 160, 150, 150, 120, 2, 2, 2, 1, 2, ?, ?, ?, ?, '{}', '[]', 240, 18, 35, ?)`,
+        [mp.id, mp.email, mp.name, mp.credits, mp.credits + 8000, mp.level, mp.planet, mp.ship, mp.tier, mp.x, mp.y, mp.z, Date.now(), now]
+      );
+    }
+  }
 }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_loot_void_nav_blackbox" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#3b0764"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_loot_void_nav_blackbox)" stroke="#c084fc" stroke-width="2.5"/>
+  
+      <rect x="28" y="24" width="72" height="64" rx="10" fill="#020617" stroke="#c084fc" stroke-width="2.5"/>
+      <circle cx="64" cy="56" r="20" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="4 3"/>
+      <polygon points="64,40 78,64 50,64" fill="#c084fc" fill-opacity="0.6" stroke="#ffffff" stroke-width="1.5"/>
+      <circle cx="64" cy="56" r="4" fill="#ffffff"/>
+    
+  <rect x="20" y="102" width="88" height="16" rx="8" fill="#020617" stroke="#c084fc" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#22d3ee" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">PIRATE★4</text>
+</svg>

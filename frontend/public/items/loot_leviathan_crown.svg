@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg_loot_leviathan_crown" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="18" fill="url(#bg_loot_leviathan_crown)" stroke="#f43f5e" stroke-width="2.5"/>
+  
+      <path d="M26 78 L34 36 L52 56 L64 26 L76 56 L94 36 L102 78 Z" fill="#020617" stroke="#fde047" stroke-width="3"/>
+      <circle cx="64" cy="24" r="5" fill="#f43f5e"/>
+      <circle cx="34" cy="34" r="4" fill="#38bdf8"/>
+      <circle cx="94" cy="34" r="4" fill="#38bdf8"/>
+      <polygon points="64,46 72,60 64,72 56,60" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5"/>
+    
+  <rect x="20" y="102" width="88" height="16" rx="8" fill="#020617" stroke="#f43f5e" stroke-width="1.2"/>
+  <text x="64" y="113" fill="#fde047" font-family="Orbitron, monospace, sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">BOSS★6</text>
+</svg>

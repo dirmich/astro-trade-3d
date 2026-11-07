@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   pilot_name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'PILOT',
-  credits INTEGER NOT NULL DEFAULT 25000,
+  credits INTEGER NOT NULL DEFAULT 3500,
+  net_worth INTEGER NOT NULL DEFAULT 3500,
+  pilot_level INTEGER NOT NULL DEFAULT 1,
   current_planet_id TEXT NOT NULL DEFAULT 'planet_1',
   ship_name TEXT NOT NULL DEFAULT 'Aegis Voyager MK-I',
   ship_tier INTEGER NOT NULL DEFAULT 1,
@@ -22,8 +24,20 @@ CREATE TABLE IF NOT EXISTS users (
   mining_laser_level INTEGER NOT NULL DEFAULT 1,
   warp_drive_level INTEGER NOT NULL DEFAULT 1,
   shield_level INTEGER NOT NULL DEFAULT 1,
+  warp_tickets INTEGER NOT NULL DEFAULT 0,
+  ai_agent_uses INTEGER NOT NULL DEFAULT 0,
   cargo_json TEXT NOT NULL DEFAULT '{}',
   crew_json TEXT NOT NULL DEFAULT '[]',
+  inventory_json TEXT NOT NULL DEFAULT '{}',
+  unlocked_maps_json TEXT NOT NULL DEFAULT '{}',
+  settings_json TEXT NOT NULL DEFAULT '{"lang":"en","bgmEnabled":true,"sfxEnabled":true,"bgmVolume":0.45,"sfxVolume":0.7}',
+  emergency_map_used INTEGER NOT NULL DEFAULT 0,
+  flight_speed_bonus REAL NOT NULL DEFAULT 1.0,
+  ship_x REAL NOT NULL DEFAULT 95,
+  ship_y REAL NOT NULL DEFAULT 2,
+  ship_z REAL NOT NULL DEFAULT 12,
+  last_seen_at INTEGER NOT NULL DEFAULT 0,
+  auth_provider TEXT NOT NULL DEFAULT 'LOCAL',
   reputation INTEGER NOT NULL DEFAULT 100,
   total_trades INTEGER NOT NULL DEFAULT 0,
   total_mined INTEGER NOT NULL DEFAULT 0,
@@ -90,6 +104,61 @@ CREATE TABLE IF NOT EXISTS galaxy_events (
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS friendships (
+  id TEXT PRIMARY KEY,
+  requester_id TEXT NOT NULL,
+  addressee_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS quests (
+  id TEXT PRIMARY KEY,
+  min_level INTEGER NOT NULL DEFAULT 1,
+  max_level INTEGER NOT NULL DEFAULT 10,
+  quest_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  target_amount INTEGER NOT NULL DEFAULT 5,
+  reward_credits INTEGER NOT NULL DEFAULT 1500,
+  reward_warp_tickets INTEGER NOT NULL DEFAULT 0,
+  title_en TEXT NOT NULL,
+  title_ko TEXT NOT NULL,
+  title_ja TEXT NOT NULL,
+  title_zh TEXT NOT NULL,
+  desc_en TEXT NOT NULL,
+  desc_ko TEXT NOT NULL,
+  desc_ja TEXT NOT NULL,
+  desc_zh TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_quests (
+  user_id TEXT NOT NULL,
+  quest_id TEXT NOT NULL,
+  progress INTEGER NOT NULL DEFAULT 0,
+  completed INTEGER NOT NULL DEFAULT 0,
+  claimed INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, quest_id)
+);
+
+CREATE TABLE IF NOT EXISTS space_pirates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  name_ko TEXT NOT NULL,
+  sector TEXT NOT NULL,
+  level INTEGER NOT NULL DEFAULT 1,
+  hp INTEGER NOT NULL DEFAULT 100,
+  max_hp INTEGER NOT NULL DEFAULT 100,
+  attack INTEGER NOT NULL DEFAULT 12,
+  reward_credits INTEGER NOT NULL DEFAULT 1200,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  z REAL NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1
+);
 `;
 
 export const POSTGRES_SCHEMA = SQLITE_SCHEMA
@@ -105,6 +174,123 @@ export interface DatabaseAdapter {
 }
 
 let dbInstance: DatabaseAdapter | null = null;
+
+async function ensureColumnsExist(db: DatabaseAdapter) {
+  const alterStatements = [
+    `ALTER TABLE users ADD COLUMN inventory_json TEXT NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE users ADD COLUMN unlocked_maps_json TEXT NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE users ADD COLUMN emergency_map_used INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN flight_speed_bonus REAL NOT NULL DEFAULT 1.0`,
+    `ALTER TABLE users ADD COLUMN net_worth INTEGER NOT NULL DEFAULT 3500`,
+    `ALTER TABLE users ADD COLUMN pilot_level INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE users ADD COLUMN warp_tickets INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN ai_agent_uses INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN settings_json TEXT NOT NULL DEFAULT '{"lang":"en","bgmEnabled":true,"sfxEnabled":true,"bgmVolume":0.45,"sfxVolume":0.7}'`,
+    `ALTER TABLE users ADD COLUMN ship_x REAL NOT NULL DEFAULT 95`,
+    `ALTER TABLE users ADD COLUMN ship_y REAL NOT NULL DEFAULT 2`,
+    `ALTER TABLE users ADD COLUMN ship_z REAL NOT NULL DEFAULT 12`,
+    `ALTER TABLE users ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'LOCAL'`,
+  ];
+  for (const stmt of alterStatements) {
+    try {
+      await db.exec(stmt);
+    } catch {
+      // Column already exists
+    }
+  }
+}
+
+/**
+ * Asset thresholds for dynamic Pilot Level (Lv.1 ~ Lv.10).
+ * Level rises when net worth grows and drops when net worth falls!
+ */
+export const WEALTH_LEVEL_THRESHOLDS = [
+  { level: 1, minWorth: 0, titleEn: 'Cadet Drifter', titleKo: '견습 파일럿' },
+  { level: 2, minWorth: 6000, titleEn: 'Orbital Courier', titleKo: '궤도 수송원' },
+  { level: 3, minWorth: 15000, titleEn: 'Sector Trader', titleKo: '구역 무역상' },
+  { level: 4, minWorth: 32000, titleEn: 'Star Navigator', titleKo: '성간 항해사' },
+  { level: 5, minWorth: 65000, titleEn: 'Fleet Captain', titleKo: '선단 캡틴' },
+  { level: 6, minWorth: 130000, titleEn: 'Void Commodore', titleKo: '보이드 제독' },
+  { level: 7, minWorth: 260000, titleEn: 'Nebula Baron', titleKo: '성운 남작' },
+  { level: 8, minWorth: 520000, titleEn: 'Galactic Tycoon', titleKo: '은하 거물' },
+  { level: 9, minWorth: 1000000, titleEn: 'Astral Archon', titleKo: '아스트랄 집정관' },
+  { level: 10, minWorth: 2200000, titleEn: 'Chronos Sovereign', titleKo: '크로노스 지배자' },
+];
+
+export function computeLevelFromNetWorth(netWorth: number): number {
+  let lv = 1;
+  for (const t of WEALTH_LEVEL_THRESHOLDS) {
+    if (netWorth >= t.minWorth) lv = t.level;
+  }
+  return lv;
+}
+
+export async function recalculateUserWealthAndLevel(userId: string): Promise<{
+  netWorth: number;
+  pilotLevel: number;
+  prevLevel: number;
+}> {
+  const db = await getDb();
+  const user = await db.get<any>('SELECT * FROM users WHERE id = ?', [userId]);
+  if (!user) return { netWorth: 0, pilotLevel: 1, prevLevel: 1 };
+
+  const prevLevel = Number(user.pilot_level || 1);
+  const cargo: Record<string, number> = JSON.parse(user.cargo_json || '{}');
+  const resources = await db.query<any>('SELECT id, base_price FROM resources');
+  const resPriceMap = new Map<string, number>(resources.map((r) => [r.id, Number(r.base_price || 50)]));
+
+  let cargoVal = 0;
+  for (const [rId, qty] of Object.entries(cargo)) {
+    cargoVal += (resPriceMap.get(rId) || 80) * Number(qty || 0);
+  }
+
+  const shipTierBonus = Math.max(0, (Number(user.ship_tier || 1) - 1) * 8000);
+  const netWorth = Math.max(0, Math.round(Number(user.credits || 0) + cargoVal + shipTierBonus));
+  const pilotLevel = computeLevelFromNetWorth(netWorth);
+
+  await db.run(
+    'UPDATE users SET net_worth = ?, pilot_level = ?, last_seen_at = ? WHERE id = ?',
+    [netWorth, pilotLevel, Date.now(), userId]
+  );
+
+  return { netWorth, pilotLevel, prevLevel };
+}
+
+export function formatUserRecord(user: any) {
+  if (!user) return null;
+  let parsedSettings = {
+    lang: 'en',
+    bgmEnabled: true,
+    sfxEnabled: true,
+    bgmVolume: 0.45,
+    sfxVolume: 0.7,
+  };
+  try {
+    parsedSettings = { ...parsedSettings, ...JSON.parse(user.settings_json || '{}') };
+  } catch {
+    // ignore
+  }
+
+  return {
+    ...user,
+    pilot_level: Number(user.pilot_level || computeLevelFromNetWorth(Number(user.net_worth || user.credits || 0))),
+    net_worth: Number(user.net_worth || user.credits || 0),
+    warp_tickets: Number(user.warp_tickets || 0),
+    ai_agent_uses: Number(user.ai_agent_uses || 0),
+    cargo: JSON.parse(user.cargo_json || '{}'),
+    crew: JSON.parse(user.crew_json || '[]'),
+    inventory: JSON.parse(user.inventory_json || '{}'),
+    unlockedMaps: JSON.parse(user.unlocked_maps_json || '{}'),
+    settings: parsedSettings,
+    emergencyMapUsed: Number(user.emergency_map_used || 0),
+    emergencyMapLimit: 3,
+    flightSpeedBonus: Number(user.flight_speed_bonus || 1.0),
+    isSuperAdmin:
+      (user.email || '').toLowerCase() === ENV.SUPERUSER_EMAIL.toLowerCase() ||
+      user.role === 'SUPERADMIN',
+  };
+}
 
 export async function getDb(): Promise<DatabaseAdapter> {
   if (dbInstance) return dbInstance;
@@ -132,6 +318,7 @@ export async function getDb(): Promise<DatabaseAdapter> {
       },
     };
     await dbInstance.exec(POSTGRES_SCHEMA);
+    await ensureColumnsExist(dbInstance);
     return dbInstance;
   }
 
@@ -159,5 +346,6 @@ export async function getDb(): Promise<DatabaseAdapter> {
   };
 
   await dbInstance.exec(SQLITE_SCHEMA);
+  await ensureColumnsExist(dbInstance);
   return dbInstance;
 }
