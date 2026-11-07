@@ -117,7 +117,7 @@
 </script>
 
 <div
-  class="p-6 bg-slate-900/95 border-2 border-rose-500/60 rounded-2xl max-w-5xl w-full shadow-[0_0_40px_rgba(244,63,94,0.3)] space-y-4"
+  class="my-auto p-3.5 sm:p-6 bg-slate-900/95 border-2 border-rose-500/60 rounded-2xl max-w-5xl w-full shadow-[0_0_40px_rgba(244,63,94,0.3)] space-y-3 sm:space-y-4"
 >
   <!-- Header -->
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">

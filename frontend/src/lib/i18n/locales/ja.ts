@@ -263,4 +263,8 @@ export const ja = {
   mapNotOwnedTitle: '🔒 宇宙地図未所持 (暗黒宙域)',
   mapNotOwnedDesc: '宇宙地図を購入して所持するとリアルタイム星図レーダーと目的地マーカーが表示されます。',
   buyMapNowBtn: '🛒 宇宙地図を購入',
+  mobileView3d: '🌌 3D 宇宙操縦',
+  mobileLaunchMap: '🚀 出航・宇宙地図',
+  mobilePlanets: '🪐 惑星一覧',
+  mobileFoldBtn: '✖ パネルを閉じる (3D画面)',
 };

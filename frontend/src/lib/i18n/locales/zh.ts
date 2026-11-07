@@ -263,4 +263,8 @@ export const zh = {
   mapNotOwnedTitle: '🔒 未持有宇宙星图 (未知星域)',
   mapNotOwnedDesc: '购买并持有宇宙星图后，将显示实时星图雷达与目的地导航标记。',
   buyMapNowBtn: '🛒 购买宇宙星图',
+  mobileView3d: '🌌 3D 太空驾驶',
+  mobileLaunchMap: '🚀 出航 · 星图',
+  mobilePlanets: '🪐 星球列表',
+  mobileFoldBtn: '✖ 关闭面板 (3D画面)',
 };

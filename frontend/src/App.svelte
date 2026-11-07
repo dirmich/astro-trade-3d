@@ -37,6 +37,7 @@
   let clockTimer: any;
   let mpSyncTimer: any;
   let bgmEnabled = true;
+  let mobilePanel: 'NONE' | 'LAUNCH_MAP' | 'PLANETS' = 'NONE';
 
   const locales = getSupportedLocales();
 
@@ -294,6 +295,7 @@
     }
     if (data.user) {
       soundEngine.playSfx('WARP');
+      mobilePanel = 'NONE';
       gameStore.update((s) => ({
         ...s,
         user: data.user,
@@ -331,6 +333,7 @@
 
     soundEngine.playSfx('AI_AGENT');
     if (data.user) {
+      mobilePanel = 'NONE';
       gameStore.update((s) => ({
         ...s,
         user: data.user,
@@ -348,6 +351,7 @@
     const pid = targetPlanetId || state.selectedTargetPlanetId || state.planets[1]?.id;
     const target = state.planets.find((p) => p.id === pid);
     engine.setFlightMode('MANUAL');
+    mobilePanel = 'NONE';
     if (target) {
       engine.alignShipToPlanet(target);
       gameStore.update((s) => ({
@@ -507,7 +511,7 @@
   }}
 />
 
-<div class="relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
+<div class="relative w-screen h-[100dvh] overflow-hidden bg-slate-950 text-slate-100 select-none">
   <!-- 3D Space WebGL Canvas -->
   <div bind:this={viewportEl} class="absolute inset-0 z-0"></div>
 
@@ -522,14 +526,14 @@
 
   <!-- Top HUD Bar -->
   <header
-    class="relative z-10 flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-900/90 backdrop-blur-md border-b border-cyan-500/30"
+    class="relative z-20 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-slate-900/90 backdrop-blur-md border-b border-cyan-500/30"
   >
-    <div class="flex flex-wrap items-center gap-2">
-      <h1 class="font-['Orbitron'] text-base md:text-lg font-bold text-cyan-400 tracking-wider">
+    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <h1 class="font-['Orbitron'] text-sm sm:text-base md:text-lg font-bold text-cyan-400 tracking-wider">
         {$t.appTitle}
       </h1>
       <span
-        class="px-2 py-0.5 rounded-md text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-500/50"
+        class="px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-500/50"
         title="Application Version"
       >
         v{APP_VERSION}
@@ -537,7 +541,7 @@
 
       {#if currentPlanet}
         <span
-          class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-500/40"
+          class="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-500/40 truncate max-w-[160px] sm:max-w-none"
         >
           🪐 {localName(currentPlanet, $currentLang)} · {currentPlanet.sector}
         </span>
@@ -552,7 +556,7 @@
             startManualFlightTo();
           }
         }}
-        class="px-2.5 py-0.5 rounded-full text-xs font-bold border transition {state.flightMode === 'MANUAL'
+        class="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold border transition {state.flightMode === 'MANUAL'
           ? 'bg-emerald-600 text-white border-emerald-300 animate-pulse'
           : state.flightMode === 'AI_AUTOPILOT'
           ? 'bg-sky-600 text-white border-sky-300 animate-pulse'
@@ -580,12 +584,12 @@
         </button>
       </div>
 
-      <div class="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800">
+      <div class="flex items-center gap-0.5 sm:gap-1 bg-slate-950 px-1 sm:px-1.5 py-0.5 rounded-lg border border-slate-800">
         {#each locales as loc}
           <button
             type="button"
             on:click={() => changeLanguage(loc.code)}
-            class="px-1.5 py-0.5 rounded text-[10px] font-bold {$currentLang === loc.code
+            class="px-1 sm:px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold {$currentLang === loc.code
               ? 'bg-cyan-600 text-white'
               : 'text-slate-400 hover:text-white'}"
           >
@@ -597,30 +601,31 @@
 
     <!-- Right Stats: Dynamic Wealth Level + Credits + Hull + Fuel + Warp Cells + AI Uses + Admin Menu -->
     {#if state.user}
-      <div class="flex flex-wrap items-center gap-2.5 text-xs">
+      <div class="flex items-center gap-1.5 sm:gap-2.5 text-[11px] sm:text-xs overflow-x-auto no-scrollbar max-w-full py-0.5">
         <span
-          class="px-2.5 py-0.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-400/60 font-extrabold"
+          class="shrink-0 px-2 py-0.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-400/60 font-extrabold"
           title="Asset-based Pilot Level (Rises and drops with your Net Worth!)"
         >
-          🎖️ {$t.hudLevel}{state.user.pilot_level} ({$t.hudNetWorth}: {(state.user.net_worth || state.user.credits).toLocaleString()} CR)
+          🎖️ {$t.hudLevel}{state.user.pilot_level}
+          <span class="hidden sm:inline">({$t.hudNetWorth}: {(state.user.net_worth || state.user.credits).toLocaleString()} CR)</span>
         </span>
 
-        <span class="text-amber-400 font-bold">💰 {state.user.credits.toLocaleString()} CR</span>
-        <span class="text-emerald-400">🛡️ {state.user.hull}/{state.user.max_hull}</span>
-        <span class="text-sky-400">⚡ {state.user.fuel}/{state.user.max_fuel}</span>
+        <span class="shrink-0 text-amber-400 font-bold">💰 {state.user.credits.toLocaleString()} CR</span>
+        <span class="shrink-0 text-emerald-400">🛡️ {state.user.hull}/{state.user.max_hull}</span>
+        <span class="shrink-0 text-sky-400">⚡ {state.user.fuel}/{state.user.max_fuel}</span>
 
         <span
-          class="px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 font-bold"
+          class="shrink-0 px-1.5 sm:px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 font-bold"
           title="Purchased Warp Jump Cells"
         >
-          🌀 {$t.hudWarpCells}: {state.user.warp_tickets || 0}
+          🌀 <span class="hidden md:inline">{$t.hudWarpCells}:</span> {state.user.warp_tickets || 0}
         </span>
 
         <span
-          class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold"
+          class="shrink-0 px-1.5 sm:px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold"
           title="Remaining AI Autopilot Agent Uses"
         >
-          🤖 {$t.hudAiAgent}: {state.user.ai_agent_uses || 0} {$t.usesUnit}
+          🤖 <span class="hidden md:inline">{$t.hudAiAgent}:</span> {state.user.ai_agent_uses || 0}{$t.usesUnit}
         </span>
 
         <!-- Superadmin Menu (Only shown for Superadmin!) -->
@@ -628,7 +633,7 @@
           <button
             type="button"
             on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'ADMIN' }))}
-            class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow"
+            class="shrink-0 px-2 py-0.5 sm:py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] sm:text-xs shadow"
           >
             {$t.btnAdmin}
           </button>
@@ -637,7 +642,7 @@
         <button
           type="button"
           on:click={() => gameStore.update((s) => ({ ...s, user: null, activeModal: null }))}
-          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
+          class="shrink-0 px-2 py-0.5 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] sm:text-[11px]"
         >
           {$t.btnLogout}
         </button>
@@ -645,10 +650,149 @@
     {/if}
   </header>
 
+  <!-- Mobile HUD Switcher Bar (Shown on Mobile / Tablet < lg so 3D Space & HUD Drawers never overlap) -->
+  <div class="relative z-20 lg:hidden flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
+    <button
+      type="button"
+      on:click={() => (mobilePanel = 'NONE')}
+      class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-extrabold border transition truncate {mobilePanel === 'NONE'
+        ? 'bg-cyan-600 text-white border-cyan-300 shadow'
+        : 'bg-slate-900 text-slate-300 border-slate-700'}"
+    >
+      {$t.mobileView3d}
+    </button>
+    <button
+      type="button"
+      on:click={() => (mobilePanel = mobilePanel === 'LAUNCH_MAP' ? 'NONE' : 'LAUNCH_MAP')}
+      class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-extrabold border transition truncate {mobilePanel === 'LAUNCH_MAP'
+        ? 'bg-emerald-600 text-white border-emerald-300 shadow'
+        : 'bg-slate-900 text-emerald-300 border-emerald-500/40'}"
+    >
+      {$t.mobileLaunchMap}
+    </button>
+    <button
+      type="button"
+      on:click={() => (mobilePanel = mobilePanel === 'PLANETS' ? 'NONE' : 'PLANETS')}
+      class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-extrabold border transition truncate {mobilePanel === 'PLANETS'
+        ? 'bg-indigo-600 text-white border-indigo-300 shadow'
+        : 'bg-slate-900 text-cyan-300 border-cyan-500/40'}"
+    >
+      {$t.mobilePlanets} ({state.planets.length})
+    </button>
+  </div>
+
+  <!-- Mobile Floating Quick Launch & Live Mini 2D Space Map Radar (Shown on < lg when in 3D Flight View) -->
+  {#if mobilePanel === 'NONE'}
+    <div class="lg:hidden relative z-10 flex items-start justify-between gap-2 px-2.5 pt-2 pointer-events-none">
+      <!-- Left: Compact Mobile Destination & Launch Box -->
+      <div class="pointer-events-auto flex-1 max-w-[235px] p-2 rounded-2xl bg-slate-900/85 backdrop-blur-md border border-emerald-500/50 shadow-lg space-y-1.5">
+        <div class="flex items-center justify-between text-[10px]">
+          <span class="font-extrabold text-emerald-300 truncate">{$t.selectDestLabel}</span>
+          {#if targetPlanet}
+            <span class="font-mono text-amber-300 font-bold shrink-0">
+              {targetDistanceKm}km · ~{(state.user?.ai_agent_uses || 0) > 0 ? estAiSec : estManualSec}{$t.secUnit}
+            </span>
+          {/if}
+        </div>
+        <select
+          aria-label="Mobile Destination Planet"
+          value={targetPlanet?.id || ''}
+          on:change={(e) => handleDestinationChange(e.currentTarget.value)}
+          class="w-full px-2 py-1 rounded-lg bg-slate-950 border border-cyan-500/50 text-[11px] font-bold text-white"
+        >
+          {#each state.planets as p (p.id)}
+            <option value={p.id}>
+              🎯 {localName(p, $currentLang)} ({p.sector})
+            </option>
+          {/each}
+        </select>
+        <div class="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            on:click={() => startManualFlightTo(targetPlanet?.id)}
+            class="py-1 px-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[10px] shadow truncate"
+          >
+            {$t.flyManualBtn} (~{estManualSec}{$t.secUnit})
+          </button>
+          <button
+            type="button"
+            on:click={() =>
+              (state.user?.ai_agent_uses || 0) > 0
+                ? startAiAutopilotFlight(targetPlanet?.id)
+                : handleWarp(targetPlanet?.id || '')}
+            class="py-1 px-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-[10px] shadow truncate"
+          >
+            {(state.user?.ai_agent_uses || 0) > 0
+              ? `🤖 AI (${state.user?.ai_agent_uses})`
+              : `🌀 ${$t.flyWarpBtn}`}
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Live Mini 2D Space Navigation Map Radar (Tap to open Full Space Map) -->
+      <button
+        type="button"
+        on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
+        class="pointer-events-auto shrink-0 p-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-cyan-400/60 shadow-lg flex flex-col items-center"
+        title={$t.spaceMapHudTitle}
+      >
+        <svg viewBox="0 0 200 200" class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-slate-950 border border-slate-800">
+          <circle cx="100" cy="100" r="40" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+          <circle cx="100" cy="100" r="82" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+          <circle cx="100" cy="100" r="4" fill="#fbbf24" />
+          {#if targetPlanet}
+            {@const sp = toRadarXY(state.flightTelemetry?.x || 0, state.flightTelemetry?.z || 0)}
+            {@const tp = toRadarXY(targetPlanet.x, targetPlanet.z)}
+            <line
+              x1={sp.x}
+              y1={sp.y}
+              x2={tp.x}
+              y2={tp.y}
+              stroke="#22d3ee"
+              stroke-width="2"
+              stroke-dasharray="4 2"
+            />
+          {/if}
+          {#each state.planets as mp (mp.id)}
+            {@const pt = toRadarXY(mp.x, mp.z)}
+            {@const isDest = mp.id === targetPlanet?.id}
+            {#if isDest}
+              <circle cx={pt.x} cy={pt.y} r="9" fill="none" stroke="#f59e0b" stroke-width="1.8" />
+            {/if}
+            <circle
+              cx={pt.x}
+              cy={pt.y}
+              r={isDest ? 4.8 : 3.2}
+              fill={mp.color_primary}
+              stroke="#ffffff"
+              stroke-width="0.8"
+            />
+          {/each}
+          {#if state.flightTelemetry}
+            {@const sp = toRadarXY(state.flightTelemetry.x, state.flightTelemetry.z)}
+            <circle cx={sp.x} cy={sp.y} r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.2" />
+          {/if}
+        </svg>
+        <span class="text-[9px] font-bold text-cyan-300 mt-0.5">🗺️ {targetPlanet ? localName(targetPlanet, $currentLang) : 'MAP'}</span>
+      </button>
+    </div>
+  {/if}
+
   <!-- Left HUD: Navigation & Sector Map Control + Manual / AI Agent / Warp Selector -->
   <aside
-    class="absolute top-14 left-3 z-10 w-80 bg-slate-900/85 backdrop-blur-md border border-cyan-500/35 rounded-2xl p-3 space-y-2.5 shadow-xl max-h-[calc(100vh-10.5rem)] flex flex-col"
+    class="{mobilePanel === 'PLANETS'
+      ? 'flex fixed inset-x-2.5 top-[5.8rem] bottom-[9.2rem] z-30'
+      : 'hidden'} lg:flex lg:absolute lg:top-14 lg:left-3 lg:bottom-auto lg:z-10 lg:w-80 bg-slate-900/95 lg:bg-slate-900/85 backdrop-blur-md border border-cyan-500/35 rounded-2xl p-3 space-y-2.5 shadow-xl lg:max-h-[calc(100dvh-10.5rem)] flex-col"
   >
+    <div class="lg:hidden flex justify-end pb-1">
+      <button
+        type="button"
+        on:click={() => (mobilePanel = 'NONE')}
+        class="w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-extrabold border border-cyan-500/40"
+      >
+        {$t.mobileFoldBtn}
+      </button>
+    </div>
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <div>
         <h2 class="text-xs font-bold text-cyan-300 uppercase tracking-wider">{$t.navHeader}</h2>
@@ -764,8 +908,20 @@
 
   <!-- Right HUD: Prominent Launch (출항) Control + Live 2D Space Navigation Map Radar + Owned Items & Logs -->
   <aside
-    class="flex flex-col absolute top-14 right-3 z-10 w-80 md:w-88 bg-slate-900/90 backdrop-blur-md border border-cyan-500/45 rounded-2xl p-3 space-y-2.5 shadow-2xl max-h-[calc(100vh-10.5rem)] overflow-y-auto"
+    class="{mobilePanel === 'LAUNCH_MAP'
+      ? 'flex fixed inset-x-2.5 top-[5.8rem] bottom-[9.2rem] z-30'
+      : 'hidden'} lg:flex flex-col lg:absolute lg:top-14 lg:right-3 lg:bottom-auto lg:z-10 lg:w-80 xl:w-88 bg-slate-900/95 lg:bg-slate-900/90 backdrop-blur-md border border-cyan-500/45 rounded-2xl p-3 space-y-2.5 shadow-2xl lg:max-h-[calc(100dvh-10.5rem)] overflow-y-auto"
   >
+    <div class="lg:hidden flex justify-end pb-1">
+      <button
+        type="button"
+        on:click={() => (mobilePanel = 'NONE')}
+        class="w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-extrabold border border-emerald-500/40"
+      >
+        {$t.mobileFoldBtn}
+      </button>
+    </div>
+
     <!-- 1. Prominent Right-Side Launch (출항: 수동운행 / AI 자동운행) Control Panel -->
     <div class="p-3 rounded-2xl bg-gradient-to-br from-slate-950 via-cyan-950/60 to-emerald-950/50 border-2 border-emerald-400/60 shadow-lg space-y-2.5">
       <div class="flex items-center justify-between">
@@ -1050,13 +1206,13 @@
   </aside>
 
   <!-- Center-Bottom Direct Piloting Flight Cockpit & Facility Action Bar -->
-  <footer class="absolute bottom-3 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
+  <footer class="absolute bottom-1.5 sm:bottom-3 inset-x-1.5 sm:inset-x-3 z-20 flex flex-col items-center gap-1.5 sm:gap-2 pointer-events-none">
     <!-- Direct Flight Cockpit Telemetry & Controls -->
     <div
-      class="pointer-events-auto flex flex-wrap items-center justify-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-emerald-500/45 shadow-2xl"
+      class="pointer-events-auto w-full lg:w-auto flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-emerald-500/45 shadow-2xl"
     >
-      <div class="flex items-center gap-3 text-xs font-mono pr-2 border-r border-slate-700">
-        <div>
+      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-mono sm:pr-2 sm:border-r border-slate-700">
+        <div class="hidden sm:block">
           <span class="text-slate-400">{$t.posLabel}:</span>
           <strong class="text-cyan-300">
             ({state.flightTelemetry.x}, {state.flightTelemetry.y}, {state.flightTelemetry.z})
@@ -1080,14 +1236,17 @@
         {/if}
       </div>
 
-      <!-- On-Screen Manual Flight Thruster Controls -->
-      <div class="flex items-center gap-1.5">
+      <!-- On-Screen Manual Flight Thruster Controls (Mouse & Mobile Touch Supported) -->
+      <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
         <button
           type="button"
           on:mousedown={() => holdControl('KeyA', true)}
           on:mouseup={() => holdControl('KeyA', false)}
           on:mouseleave={() => holdControl('KeyA', false)}
-          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700"
+          on:touchstart|preventDefault={() => holdControl('KeyA', true)}
+          on:touchend|preventDefault={() => holdControl('KeyA', false)}
+          on:touchcancel|preventDefault={() => holdControl('KeyA', false)}
+          class="touch-none px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-cyan-700 text-xs font-bold text-slate-200 border border-slate-700"
         >
           ◀ A
         </button>
@@ -1096,7 +1255,10 @@
           on:mousedown={() => holdControl('KeyW', true)}
           on:mouseup={() => holdControl('KeyW', false)}
           on:mouseleave={() => holdControl('KeyW', false)}
-          class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-xs font-bold text-white"
+          on:touchstart|preventDefault={() => holdControl('KeyW', true)}
+          on:touchend|preventDefault={() => holdControl('KeyW', false)}
+          on:touchcancel|preventDefault={() => holdControl('KeyW', false)}
+          class="touch-none px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-500 text-xs font-bold text-white"
         >
           {$t.thrustBtn}
         </button>
@@ -1105,7 +1267,10 @@
           on:mousedown={() => holdControl('KeyS', true)}
           on:mouseup={() => holdControl('KeyS', false)}
           on:mouseleave={() => holdControl('KeyS', false)}
-          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700"
+          on:touchstart|preventDefault={() => holdControl('KeyS', true)}
+          on:touchend|preventDefault={() => holdControl('KeyS', false)}
+          on:touchcancel|preventDefault={() => holdControl('KeyS', false)}
+          class="touch-none px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-cyan-700 text-xs font-bold text-slate-200 border border-slate-700"
         >
           ▼ S
         </button>
@@ -1114,7 +1279,10 @@
           on:mousedown={() => holdControl('KeyD', true)}
           on:mouseup={() => holdControl('KeyD', false)}
           on:mouseleave={() => holdControl('KeyD', false)}
-          class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700"
+          on:touchstart|preventDefault={() => holdControl('KeyD', true)}
+          on:touchend|preventDefault={() => holdControl('KeyD', false)}
+          on:touchcancel|preventDefault={() => holdControl('KeyD', false)}
+          class="touch-none px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-cyan-700 text-xs font-bold text-slate-200 border border-slate-700"
         >
           ▶ D
         </button>
@@ -1123,7 +1291,10 @@
           on:mousedown={() => holdControl('BOOST', true)}
           on:mouseup={() => holdControl('BOOST', false)}
           on:mouseleave={() => holdControl('BOOST', false)}
-          class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white"
+          on:touchstart|preventDefault={() => holdControl('BOOST', true)}
+          on:touchend|preventDefault={() => holdControl('BOOST', false)}
+          on:touchcancel|preventDefault={() => holdControl('BOOST', false)}
+          class="touch-none px-2.5 py-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-600 hover:bg-amber-500 active:bg-amber-400 text-xs font-bold text-white"
         >
           🔥 Shift
         </button>
@@ -1131,14 +1302,14 @@
           <button
             type="button"
             on:click={() => startManualFlightTo(targetPlanet.id)}
-            class="px-2.5 py-1 rounded-lg bg-cyan-800 hover:bg-cyan-700 text-xs font-bold text-cyan-200"
+            class="hidden md:inline-block px-2.5 py-1 rounded-lg bg-cyan-800 hover:bg-cyan-700 text-xs font-bold text-cyan-200"
           >
             {$t.alignBtn} [{localName(targetPlanet, $currentLang)}]
           </button>
           <button
             type="button"
             on:click={() => startAiAutopilotFlight(targetPlanet.id)}
-            class="px-2.5 py-1 rounded-lg bg-sky-700 hover:bg-sky-600 text-xs font-bold text-white"
+            class="hidden md:inline-block px-2.5 py-1 rounded-lg bg-sky-700 hover:bg-sky-600 text-xs font-bold text-white"
           >
             {$t.flyAiBtn} ({state.user?.ai_agent_uses || 0})
           </button>
@@ -1158,12 +1329,26 @@
 
     <!-- Main Planetary Facilities & Multiplayer Action Dock + Large Right-Side LAUNCH Button -->
     <div
-      class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl"
+      class="pointer-events-auto w-full lg:w-auto flex flex-nowrap lg:flex-wrap items-center justify-start lg:justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl overflow-x-auto no-scrollbar"
     >
+      <!-- Mobile/Desktop Prominent Launch Button (First on mobile for instant thumb reach, right-side on desktop) -->
+      <button
+        type="button"
+        on:click={handlePrimaryLaunch}
+        class="shrink-0 order-first lg:order-last lg:ml-2 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-slate-950 font-extrabold text-xs sm:text-sm shadow-[0_0_25px_rgba(16,185,129,0.65)] border-2 border-white/60 transition transform hover:scale-105 active:scale-95 whitespace-nowrap"
+      >
+        {$t.launchBigBtn}
+        {#if targetPlanet}
+          <span class="ml-1 text-[10px] sm:text-xs font-mono">
+            [{localName(targetPlanet, $currentLang)} · ~{(state.user?.ai_agent_uses || 0) > 0 ? estAiSec : estManualSec}{$t.secUnit}]
+          </span>
+        {/if}
+      </button>
+
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'SHOP' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs shadow border border-fuchsia-400/50"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs shadow border border-fuchsia-400/50"
       >
         {$t.btnShop}
       </button>
@@ -1171,7 +1356,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'MAP' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs"
       >
         {$t.btnStarMap}
       </button>
@@ -1179,7 +1364,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'COMBAT' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow border border-rose-400/50"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow border border-rose-400/50"
       >
         {$t.btnCombat}
       </button>
@@ -1187,7 +1372,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'FRIENDS' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs"
       >
         {$t.btnFriends} ({state.friends.length})
       </button>
@@ -1195,7 +1380,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'QUESTS' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
       >
         {$t.btnQuests}
       </button>
@@ -1203,7 +1388,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'TRADE' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
       >
         {$t.btnTrade}
       </button>
@@ -1211,7 +1396,7 @@
       <button
         type="button"
         on:click={handleMineOrbital}
-        class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
       >
         {$t.btnMine}
       </button>
@@ -1219,7 +1404,7 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'REPAIR' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
       >
         {$t.btnRepair}
       </button>
@@ -1227,23 +1412,9 @@
       <button
         type="button"
         on:click={() => gameStore.update((s) => ({ ...s, activeModal: 'TAVERN' }))}
-        class="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs"
       >
         {$t.btnTavern}
-      </button>
-
-      <!-- Large Prominent Right-Side Launch (출항: 수동운행 / AI 자동운행) Button -->
-      <button
-        type="button"
-        on:click={handlePrimaryLaunch}
-        class="ml-2 px-5 py-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-slate-950 font-extrabold text-sm shadow-[0_0_25px_rgba(16,185,129,0.65)] border-2 border-white/60 transition transform hover:scale-105 active:scale-95"
-      >
-        {$t.launchBigBtn}
-        {#if targetPlanet}
-          <span class="ml-1 text-xs font-mono">
-            [{localName(targetPlanet, $currentLang)} · ~{(state.user?.ai_agent_uses || 0) > 0 ? estAiSec : estManualSec}{$t.secUnit}]
-          </span>
-        {/if}
       </button>
     </div>
   </footer>
@@ -1254,7 +1425,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       on:click|self={closeActiveModal}
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto"
+      class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
     >
       {#if state.activeModal === 'SHOP'}
         <ShopModal />

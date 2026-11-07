@@ -263,4 +263,8 @@ export const ko = {
   mapNotOwnedTitle: '🔒 우주지도 미보유 (암흑 성역)',
   mapNotOwnedDesc: '우주지도를 구매하여 소지하면 실시간 성도 레이더와 목적지 항법 마커가 표시됩니다.',
   buyMapNowBtn: '🛒 우주지도 구매하기',
+  mobileView3d: '🌌 3D 우주 조종',
+  mobileLaunchMap: '🚀 출항 · 우주지도',
+  mobilePlanets: '🪐 행성 목록',
+  mobileFoldBtn: '✖ 패널 닫기 (3D 우주 화면)',
 };

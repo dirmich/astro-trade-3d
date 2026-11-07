@@ -26,23 +26,23 @@
 </script>
 
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/35 overflow-y-auto"
+  class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2.5 sm:p-4 bg-slate-950/50 overflow-y-auto"
 >
   <div
-    class="max-w-4xl w-full rounded-3xl bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 shadow-[0_0_50px_rgba(6,182,212,0.25)] p-6 md:p-8 space-y-6"
+    class="max-w-4xl w-full my-auto rounded-2xl sm:rounded-3xl bg-slate-900/85 backdrop-blur-md border border-cyan-500/40 shadow-[0_0_50px_rgba(6,182,212,0.25)] p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6"
   >
-    <!-- Top Bar: Brand + Language Selector (English Default + KO/JA/ZH) -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+    <!-- Top Bar: Brand + Language Selector (Korean Default + EN/JA/ZH) -->
+    <div class="flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-800 pb-3 sm:pb-4">
       <div>
-        <div class="flex items-center gap-2.5">
-          <span class="text-2xl">🚀</span>
-          <h1 class="font-['Orbitron'] text-2xl md:text-3xl font-extrabold text-cyan-400 tracking-wider">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xl sm:text-2xl">🚀</span>
+          <h1 class="font-['Orbitron'] text-xl sm:text-2xl md:text-3xl font-extrabold text-cyan-400 tracking-wider">
             {$t.appTitle}
           </h1>
-          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-400/50">
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-400/50">
             v{APP_VERSION}
           </span>
-          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
             MULTIPLAYER
           </span>
         </div>
@@ -50,11 +50,11 @@
       </div>
 
       <!-- Modular Language Switcher -->
-      <div class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+      <div class="flex flex-wrap items-center gap-1 bg-slate-950 p-1 sm:p-1.5 rounded-xl border border-slate-800">
         {#each locales as loc}
           <button
             on:click={() => currentLang.set(loc.code)}
-            class="px-2.5 py-1 rounded-lg text-xs font-bold transition {$currentLang === loc.code
+            class="px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition {$currentLang === loc.code
               ? 'bg-cyan-600 text-white shadow'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
           >
@@ -65,27 +65,27 @@
     </div>
 
     <!-- Core Feature Highlights -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-      <div class="p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/30 space-y-1">
-        <div class="text-sm font-bold text-emerald-300">🛸 {$t.featureManualFlight}</div>
-        <p class="text-xs text-slate-400 leading-relaxed">{$t.featureManualFlightDesc}</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3.5">
+      <div class="p-3 sm:p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/30 space-y-1">
+        <div class="text-xs sm:text-sm font-bold text-emerald-300">🛸 {$t.featureManualFlight}</div>
+        <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed">{$t.featureManualFlightDesc}</p>
       </div>
-      <div class="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/30 space-y-1">
-        <div class="text-sm font-bold text-rose-300">🏴‍☠️ {$t.featurePirateRaid}</div>
-        <p class="text-xs text-slate-400 leading-relaxed">{$t.featurePirateRaidDesc}</p>
+      <div class="p-3 sm:p-4 rounded-2xl bg-slate-950/80 border border-rose-500/30 space-y-1">
+        <div class="text-xs sm:text-sm font-bold text-rose-300">🏴‍☠️ {$t.featurePirateRaid}</div>
+        <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed">{$t.featurePirateRaidDesc}</p>
       </div>
-      <div class="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-1">
-        <div class="text-sm font-bold text-amber-300">📈 {$t.featureDynamicLevel}</div>
-        <p class="text-xs text-slate-400 leading-relaxed">{$t.featureDynamicLevelDesc}</p>
+      <div class="p-3 sm:p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-1">
+        <div class="text-xs sm:text-sm font-bold text-amber-300">📈 {$t.featureDynamicLevel}</div>
+        <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed">{$t.featureDynamicLevelDesc}</p>
       </div>
-      <div class="p-4 rounded-2xl bg-slate-950/80 border border-fuchsia-500/30 space-y-1">
-        <div class="text-sm font-bold text-fuchsia-300">🗺️ {$t.featureSectorMap}</div>
-        <p class="text-xs text-slate-400 leading-relaxed">{$t.featureSectorMapDesc}</p>
+      <div class="p-3 sm:p-4 rounded-2xl bg-slate-950/80 border border-fuchsia-500/30 space-y-1">
+        <div class="text-xs sm:text-sm font-bold text-fuchsia-300">🗺️ {$t.featureSectorMap}</div>
+        <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed">{$t.featureSectorMapDesc}</p>
       </div>
     </div>
 
     <!-- Authentication Tabs: Google SSO / Email Login / New Pilot Register -->
-    <div class="p-5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-4">
+    <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-3 sm:space-y-4">
       <div class="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         <button
           on:click={() => (authTab = 'GOOGLE')}

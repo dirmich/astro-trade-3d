@@ -263,4 +263,8 @@ export const en = {
   mapNotOwnedTitle: '🔒 Space Map Required',
   mapNotOwnedDesc: 'Purchase a Sector Space Map to unlock the live 2D radar and destination markers.',
   buyMapNowBtn: '🛒 Buy Space Map',
+  mobileView3d: '🌌 3D Flight View',
+  mobileLaunchMap: '🚀 Launch & Map',
+  mobilePlanets: '🪐 Planets',
+  mobileFoldBtn: '✖ Close Panel (3D View)',
 };

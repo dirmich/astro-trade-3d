@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 export default defineConfig(({ mode }) => {
   const rootDir = resolve(__dirname, '..');
   const env = loadEnv(mode, rootDir, '');
-  let pkgVersion = '1.0.7';
+  let pkgVersion = '1.0.8';
   try {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
     if (pkg.version) pkgVersion = pkg.version;

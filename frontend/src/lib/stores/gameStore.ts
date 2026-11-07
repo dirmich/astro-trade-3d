@@ -4,10 +4,10 @@
 import { writable, get } from 'svelte/store';
 import { currentLang } from '../i18n';
 import { soundEngine } from '../audio/SoundEngine';
+import pkg from '../../../package.json';
 
 export const SUPERUSER_EMAIL = 'oldtv.cf@gmail.com';
-export const APP_VERSION: string =
-  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.7';
+export const APP_VERSION: string = pkg.version || '1.0.8';
 
 function resolveApiBase(): string {
   const configured = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
