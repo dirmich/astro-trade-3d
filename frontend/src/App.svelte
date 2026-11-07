@@ -14,6 +14,7 @@
     formatDuration,
     getItemLevelStyle,
     API_BASE,
+    APP_VERSION,
   } from './lib/stores/gameStore';
   import { SpaceEngine3D } from './lib/three/SpaceScene';
   import { currentLang, getSupportedLocales, localName, t } from './lib/i18n';
@@ -527,6 +528,12 @@
       <h1 class="font-['Orbitron'] text-base md:text-lg font-bold text-cyan-400 tracking-wider">
         {$t.appTitle}
       </h1>
+      <span
+        class="px-2 py-0.5 rounded-md text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-500/50"
+        title="Application Version"
+      >
+        v{APP_VERSION}
+      </span>
 
       {#if currentPlanet}
         <span

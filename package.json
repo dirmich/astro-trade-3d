@@ -1,6 +1,6 @@
 {
   "name": "astro-trade-3d-monorepo",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "description": "Interplanetary 3D Resource Mining & Trading Spaceship Simulator built with Svelte, Three.js, Bun, Hono, and SQLite/PostgreSQL",
   "workspaces": [

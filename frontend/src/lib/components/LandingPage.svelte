@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { currentLang, getSupportedLocales, t } from '../i18n';
-  import { SUPERUSER_EMAIL } from '../stores/gameStore';
+  import { SUPERUSER_EMAIL, APP_VERSION } from '../stores/gameStore';
 
   const dispatch = createEventDispatcher<{
     googleLogin: { email: string; name: string };
@@ -39,8 +39,11 @@
           <h1 class="font-['Orbitron'] text-2xl md:text-3xl font-extrabold text-cyan-400 tracking-wider">
             {$t.appTitle}
           </h1>
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-400/50">
+            v{APP_VERSION}
+          </span>
           <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-            MULTIPLAYER v2.0
+            MULTIPLAYER
           </span>
         </div>
         <p class="text-xs md:text-sm text-slate-300 mt-1">{$t.landingSubtitle}</p>
